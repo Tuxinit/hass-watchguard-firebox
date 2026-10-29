@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1E3A8A"/>
+      <stop offset="1" stop-color="#0E7490"/>
+    </linearGradient>
+    <clipPath id="shield">
+      <path d="M256 28 L452 96 V236 C452 360 370 446 256 488 C142 446 60 360 60 236 V96 Z"/>
+    </clipPath>
+  </defs>
+  <!-- shield -->
+  <path d="M256 28 L452 96 V236 C452 360 370 446 256 488 C142 446 60 360 60 236 V96 Z" fill="url(#g)"/>
+  <!-- brick wall (firewall) -->
+  <g clip-path="url(#shield)" fill="#FFFFFF" fill-opacity="0.16">
+    <rect x="70"  y="130" width="112" height="44" rx="6"/>
+    <rect x="196" y="130" width="120" height="44" rx="6"/>
+    <rect x="330" y="130" width="112" height="44" rx="6"/>
+    <rect x="40"  y="188" width="90"  height="44" rx="6"/>
+    <rect x="144" y="188" width="112" height="44" rx="6"/>
+    <rect x="270" y="188" width="112" height="44" rx="6"/>
+    <rect x="396" y="188" width="90"  height="44" rx="6"/>
+    <rect x="70"  y="304" width="112" height="44" rx="6"/>
+    <rect x="196" y="304" width="120" height="44" rx="6"/>
+    <rect x="330" y="304" width="112" height="44" rx="6"/>
+    <rect x="40"  y="362" width="90"  height="44" rx="6"/>
+    <rect x="144" y="362" width="112" height="44" rx="6"/>
+    <rect x="270" y="362" width="112" height="44" rx="6"/>
+    <rect x="396" y="362" width="90"  height="44" rx="6"/>
+  </g>
+  <!-- monitoring pulse -->
+  <polyline points="92,268 176,268 206,214 248,330 286,236 312,268 420,268"
+            fill="none" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- status dot -->
+  <circle cx="420" cy="268" r="22" fill="#34D399" stroke="#FFFFFF" stroke-width="8"/>
+</svg>

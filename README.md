@@ -1,5 +1,7 @@
 # hass-watchguard-firebox
 
+<img src="custom_components/watchguard_firebox/brand/icon.png" width="96" align="right" alt="">
+
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
 Intégration Home Assistant pour les **WatchGuard Firebox** (Fireware 12.x), inspirée de [hass-pfsense](https://github.com/travisghansen/hass-pfsense).
