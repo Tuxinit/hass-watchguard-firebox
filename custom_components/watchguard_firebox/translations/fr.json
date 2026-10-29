@@ -1,0 +1,93 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "WatchGuard Firebox",
+        "description": "Connexion à la CLI Fireware en SSH (port 4118). Utilise un compte dédié avec le rôle Device Monitor.",
+        "data": {
+          "host": "Hôte",
+          "port": "Port SSH",
+          "username": "Utilisateur",
+          "password": "Mot de passe"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ré-authentifier {host}",
+        "description": "Saisis à nouveau le mot de passe. Coche la case uniquement si tu as volontairement changé la clé SSH du Firebox (reset usine, RMA).",
+        "data": {
+          "password": "Mot de passe",
+          "accept_new_host_key": "Accepter la nouvelle clé SSH"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossible de joindre la CLI du Firebox",
+      "invalid_auth": "Identifiants invalides",
+      "host_key_changed": "La clé SSH du Firebox a changé",
+      "unexpected_output": "Sortie CLI inattendue (show sysinfo)",
+      "unknown": "Erreur inattendue"
+    },
+    "abort": {
+      "already_configured": "Ce Firebox est déjà configuré",
+      "reauth_successful": "Ré-authentification réussie",
+      "wrong_device": "Ce n'est pas le même Firebox (numéro de série différent)"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options du Firebox",
+        "data": {
+          "scan_interval": "Intervalle de scrutation (secondes)",
+          "poll_dhcp": "Lire les baux DHCP",
+          "consider_home": "Considérer présent pendant (secondes)",
+          "tracked_macs": "Appareils à suivre (ARP)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "cpu_1min": {
+        "name": "CPU (1 min)"
+      },
+      "cpu_5min": {
+        "name": "CPU (5 min)"
+      },
+      "cpu_15min": {
+        "name": "CPU (15 min)"
+      },
+      "memory_used_percent": {
+        "name": "Mémoire utilisée"
+      },
+      "memory_free": {
+        "name": "Mémoire libre"
+      },
+      "memory_used": {
+        "name": "Mémoire utilisée (taille)"
+      },
+      "boot_time": {
+        "name": "Dernier démarrage"
+      },
+      "firmware": {
+        "name": "Version Fireware"
+      },
+      "arp_entries": {
+        "name": "Entrées ARP"
+      },
+      "dhcp_leases": {
+        "name": "Baux DHCP"
+      }
+    },
+    "binary_sensor": {
+      "interface": {
+        "name": "Interface {name}"
+      }
+    },
+    "device_tracker": {
+      "tracked_device": {
+        "name": "Appareil suivi"
+      }
+    }
+  }
+}

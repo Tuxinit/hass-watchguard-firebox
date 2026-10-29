@@ -1,0 +1,16 @@
+WG#show sysinfo
+--
+-- System Information
+--
+system name         : JURASSIC-T25
+system model        : T25
+contact             : (null)
+location            : (null)
+system time         : 19:23:03CET 10/29/2026
+up time             : 21 days 21 hours 20 minutes 38 seconds
+serial number       : D0000000000AA
+version             : 12.12.3.B747886
+cpu utilization     : 8%(1 min)  10%(5 min)  12%(15 min)
+memory usage        : 3869588 kB(total)  1724216 kB(free)  2145372 kB(used)
+time zone           : GMT+1:00 Amsterdam; Copenhagen; Madrid; Paris; Vilnius
+WG#

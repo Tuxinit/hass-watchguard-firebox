@@ -1,0 +1,93 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "WatchGuard Firebox",
+        "description": "Connection to the Fireware CLI over SSH (port 4118). Use a dedicated Device Monitor account.",
+        "data": {
+          "host": "Host",
+          "port": "SSH port",
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate {host}",
+        "description": "Enter the password again. Tick the box only if you knowingly changed the Firebox SSH key (factory reset, RMA).",
+        "data": {
+          "password": "Password",
+          "accept_new_host_key": "Accept the new SSH host key"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the Firebox CLI",
+      "invalid_auth": "Invalid credentials",
+      "host_key_changed": "The Firebox SSH host key has changed",
+      "unexpected_output": "Unexpected CLI output (show sysinfo)",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This Firebox is already configured",
+      "reauth_successful": "Re-authentication successful",
+      "wrong_device": "This is not the same Firebox (serial number differs)"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Firebox options",
+        "data": {
+          "scan_interval": "Scan interval (seconds)",
+          "poll_dhcp": "Read DHCP leases",
+          "consider_home": "Consider home (seconds)",
+          "tracked_macs": "Devices to track (ARP)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "cpu_1min": {
+        "name": "CPU (1 min)"
+      },
+      "cpu_5min": {
+        "name": "CPU (5 min)"
+      },
+      "cpu_15min": {
+        "name": "CPU (15 min)"
+      },
+      "memory_used_percent": {
+        "name": "Memory used"
+      },
+      "memory_free": {
+        "name": "Memory free"
+      },
+      "memory_used": {
+        "name": "Memory used (size)"
+      },
+      "boot_time": {
+        "name": "Last boot"
+      },
+      "firmware": {
+        "name": "Fireware version"
+      },
+      "arp_entries": {
+        "name": "ARP entries"
+      },
+      "dhcp_leases": {
+        "name": "DHCP leases"
+      }
+    },
+    "binary_sensor": {
+      "interface": {
+        "name": "Interface {name}"
+      }
+    },
+    "device_tracker": {
+      "tracked_device": {
+        "name": "Tracked device"
+      }
+    }
+  }
+}

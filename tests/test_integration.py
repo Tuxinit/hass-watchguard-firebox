@@ -1,0 +1,85 @@
+"""End-to-end tests inside a Home Assistant test instance."""
+from homeassistant import config_entries
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import entity_registry as er
+
+from custom_components.watchguard_firebox.const import DOMAIN
+
+USER_INPUT = {"host": "172.25.5.1", "port": 4118, "username": "ha_monitor", "password": "x"}
+
+
+async def _setup(hass: HomeAssistant):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] is FlowResultType.FORM
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
+    assert result["type"] is FlowResultType.CREATE_ENTRY, result
+    await hass.async_block_till_done()
+    return result["result"]
+
+
+async def test_flow_and_entities(hass: HomeAssistant, mock_client) -> None:
+    entry = await _setup(hass)
+    assert entry.title == "JURASSIC-T25"
+    assert entry.unique_id == "D0000000000AA"
+    assert entry.data["host_key_fingerprint"] == "SHA256:testfp"
+
+    assert hass.states.get("sensor.jurassic_t25_cpu_1_min").state == "8.0"
+    assert hass.states.get("sensor.jurassic_t25_memory_used").state == "55.4"
+    assert hass.states.get("sensor.jurassic_t25_fireware_version").state == "12.12.3.B747886"
+    assert hass.states.get("sensor.jurassic_t25_arp_entries").state == "7"
+    assert hass.states.get("sensor.jurassic_t25_dhcp_leases").state == "7"
+    assert hass.states.get("sensor.jurassic_t25_last_boot").state not in ("unknown", "unavailable")
+    assert hass.states.get("binary_sensor.jurassic_t25_interface_external").state == "on"
+    assert hass.states.get("binary_sensor.jurassic_t25_interface_vlan_home").state == "on"
+    # disabled interface -> entity disabled by default
+    reg = er.async_get(hass)
+    wifi = reg.async_get("binary_sensor.jurassic_t25_interface_wifi")
+    assert wifi is not None and wifi.disabled_by is not None
+
+
+async def test_duplicate_aborts(hass: HomeAssistant, mock_client) -> None:
+    await _setup(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+
+
+async def test_device_tracker(hass: HomeAssistant, mock_client) -> None:
+    entry = await _setup(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] is FlowResultType.FORM
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            "scan_interval": 30,
+            "poll_dhcp": True,
+            "consider_home": 180,
+            "tracked_macs": ["02:00:00:00:00:01", "02:00:00:00:00:08"],
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    samsung = hass.states.get("device_tracker.samsung")
+    assert samsung is not None and samsung.state == "home"
+    assert samsung.attributes["ip"] == "172.25.5.200"
+    # in DHCP but not in ARP -> away
+    shelly = hass.states.get("device_tracker.shellyplusrgbwpm_3076f53bc600")
+    assert shelly is not None and shelly.state == "not_home"
+
+
+async def test_auth_error_triggers_reauth(hass: HomeAssistant, mock_client) -> None:
+    from custom_components.watchguard_firebox.api import FireboxAuthError
+
+    entry = await _setup(hass)
+    mock_client.run.side_effect = FireboxAuthError("denied")
+    await entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    flows = hass.config_entries.flow.async_progress()
+    assert any(f["context"]["source"] == "reauth" for f in flows)

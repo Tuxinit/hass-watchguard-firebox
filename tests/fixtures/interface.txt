@@ -1,0 +1,17 @@
+WG#show interface
+--
+-- Interface Properties
+-- Type:  TR = trusted, EX = external, OP = optional, CS = custom, VL = vlan, BR = bridge, CL = cluster,LA = <link aggregation, NA = not apply
+--
+physical interface count : 5
+licensed interface count : 5
+--
+-- Interface Address & Status
+--
+Enabled If-#  Name                     Address     Type/MTU  Status IP-Assignment IP-Node-Type
+ yes    0     External          192.168.34.40/24 EX/1500   Up     DHCP          IPv4 Only
+ yes    1     VLAN_HOME                0.0.0.0/0  VL/1500   Up     Static        IPv4 Only
+ no     2     WIFI                     0.0.0.0/0  NA/1500   Down   Static        IPv4 Only
+ yes    3     VLANS-SERVEURS2          0.0.0.0/0  VL/1500   Up     Static        IPv4 Only
+ yes    4     VLANS-WIFI               0.0.0.0/0  VL/1500   Up     Static        IPv4 Only
+WG#

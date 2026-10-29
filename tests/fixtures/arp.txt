@@ -1,0 +1,14 @@
+WG#show arp
+--
+-- ARP Table
+--
+? (172.25.5.200) at 02:00:00:00:00:01 [ether]  on vlan5
+? (172.25.3.105) at <incomplete>  on vlan3
+? (192.168.34.1) at 02:00:00:00:00:02 [ether]  on eth0
+? (172.25.5.102) at 02:00:00:00:00:03 [ether]  on vlan5
+? (172.25.5.52) at <incomplete>  on vlan5
+? (192.168.134.30) at 02:00:00:00:00:04 [ether]  on vlan1
+? (10.99.0.2) at 02:00:00:00:00:05 [ether]  on vlan99
+? (172.25.5.50) at 02:00:00:00:00:06 [ether]  on vlan5
+? (172.25.5.100) at 02:00:00:00:00:07 [ether]  on vlan5
+WG#
