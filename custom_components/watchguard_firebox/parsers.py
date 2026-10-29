@@ -7,7 +7,7 @@ against captured CLI output.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import re
 
 _ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
@@ -248,3 +248,237 @@ def is_cli_error(text: str) -> bool:
         marker in t
         for marker in ("% error", "%error", "invalid input", "unknown command", "permission denied")
     )
+
+
+# --------------------------------------------------------------------------
+# show features (licences)
+# --------------------------------------------------------------------------
+
+_TZ_OFFSETS = {
+    "PST": -8, "PDT": -7, "MST": -7, "MDT": -6, "CST": -6, "CDT": -5,
+    "EST": -5, "EDT": -4, "UTC": 0, "GMT": 0, "CET": 1, "CEST": 2,
+}
+
+_FEATURE_RE = re.compile(
+    r"^(?P<name>[A-Z0-9_]+)\s+(?P<capacity>\S+)\s+(?P<status>Enabled|Disabled)\s+(?P<exp>.+?)\s*$"
+)
+_FEATURE_EXP_RE = re.compile(
+    r"^(?P<time>\d{2}:\d{2}:\d{2})(?P<tz>[A-Z]{2,5})?\s+(?P<date>\d{2}/\d{2}/\d{4})$"
+)
+
+
+def _parse_feature_expiration(value: str) -> datetime | None:
+    """'00:59:59PST 09/09/2027' -> aware datetime (UTC); 'Never' -> None."""
+    m = _FEATURE_EXP_RE.match(value.strip())
+    if not m:
+        return None
+    try:
+        naive = datetime.strptime(f"{m['date']} {m['time']}", "%m/%d/%Y %H:%M:%S")
+    except ValueError:
+        return None
+    offset = _TZ_OFFSETS.get((m["tz"] or "UTC").upper(), 0)
+    return naive.replace(tzinfo=timezone(timedelta(hours=offset))).astimezone(timezone.utc)
+
+
+@dataclass(slots=True)
+class Feature:
+    """A licensed feature."""
+
+    name: str
+    capacity: str
+    enabled: bool
+    expiration: datetime | None  # None = never expires
+
+
+def parse_features(text: str) -> dict:
+    """Parse `show features`."""
+    summary: dict[str, str] = {}
+    features: dict[str, Feature] = {}
+    in_table = False
+    for line in clean(text).splitlines():
+        if line.startswith("Feature") and "Expiration" in line:
+            in_table = True
+            continue
+        if not in_table:
+            key, sep, value = line.partition(":")
+            if sep and not line.startswith("--"):
+                summary[key.strip().lower()] = value.strip()
+            continue
+        m = _FEATURE_RE.match(line.strip())
+        if m:
+            features[m["name"]] = Feature(
+                name=m["name"],
+                capacity=m["capacity"],
+                enabled=m["status"] == "Enabled",
+                expiration=_parse_feature_expiration(m["exp"]),
+            )
+    return {
+        "edition": summary.get("software edition"),
+        "features": features,
+    }
+
+
+# --------------------------------------------------------------------------
+# show upgrade (history)
+# --------------------------------------------------------------------------
+
+_UPGRADE_RE = re.compile(
+    r"^(?P<time>\d{2}/\d{2}/\d{4}:\d{2}:\d{2}:\d{2})\s+(?P<action>.+?)\s+"
+    r"(?P<version>\d+(?:\.\d+)+)\s+(?P<build>\d+)\s+(?P<status>\S+)\s*(?P<comment>.*)$"
+)
+
+
+@dataclass(slots=True)
+class UpgradeRecord:
+    """One line of the upgrade history. time is naive (Firebox local time)."""
+
+    time: datetime | None
+    action: str
+    version: str
+    build: str
+    success: bool
+    status: str
+    comment: str
+
+
+def parse_upgrade_history(text: str) -> list[UpgradeRecord]:
+    """Parse `show upgrade`; returns records oldest first."""
+    records: list[UpgradeRecord] = []
+    for line in clean(text).splitlines():
+        m = _UPGRADE_RE.match(line.strip())
+        if not m:
+            continue
+        try:
+            ts = datetime.strptime(m["time"], "%m/%d/%Y:%H:%M:%S")
+        except ValueError:
+            ts = None
+        records.append(
+            UpgradeRecord(
+                time=ts,
+                action=m["action"].strip(),
+                version=m["version"],
+                build=m["build"],
+                success=m["status"].lower() == "success",
+                status=m["status"],
+                comment=m["comment"].strip(),
+            )
+        )
+    records.sort(key=lambda r: r.time or datetime.min)
+    return records
+
+
+# --------------------------------------------------------------------------
+# show signature-update
+# --------------------------------------------------------------------------
+
+_SIG_AUTO_RE = re.compile(
+    r"^automatic\s+(?P<name>.+?)\s+(?:signature\s+update|database\s+update)\s*:\s*(?P<state>\w+)",
+    re.IGNORECASE,
+)
+
+
+def parse_signature_update(text: str) -> dict:
+    """Parse `show signature-update` -> {'interval_hours', 'auto': {name: bool}}."""
+    result: dict = {"interval_hours": None, "auto": {}}
+    for line in clean(text).splitlines():
+        line = line.strip()
+        if line.lower().startswith("automatic update interval"):
+            m = re.search(r":\s*(\d+)", line)
+            if m:
+                result["interval_hours"] = int(m.group(1))
+            continue
+        m = _SIG_AUTO_RE.match(line)
+        if m:
+            result["auto"][m["name"].strip()] = m["state"].lower() == "enabled"
+    return result
+
+
+# --------------------------------------------------------------------------
+# show login-user (management sessions)
+# --------------------------------------------------------------------------
+
+_LOGIN_RE = re.compile(
+    r"^(?P<user>\S+)\s+(?P<domain>\S+)\s+(?P<role>.+?)\s+(?P<days>\d+)\s+days\s+"
+    rf"(?P<hms>\d+:\d{{2}}:\d{{2}})\s+(?P<ip>{_IP_RE}|[0-9a-fA-F:]+)\s*(?P<limit>.*)$"
+)
+
+
+@dataclass(slots=True)
+class LoginSession:
+    """An open management session."""
+
+    user: str
+    domain: str
+    role: str
+    elapsed: int  # seconds
+    ip: str
+
+
+def parse_login_users(text: str) -> list[LoginSession]:
+    """Parse `show login-user`."""
+    sessions: list[LoginSession] = []
+    for line in clean(text).splitlines():
+        m = _LOGIN_RE.match(line.strip())
+        if not m:
+            continue
+        h, mi, s = (int(x) for x in m["hms"].split(":"))
+        sessions.append(
+            LoginSession(
+                user=m["user"],
+                domain=m["domain"],
+                role=m["role"].strip(),
+                elapsed=int(m["days"]) * 86400 + h * 3600 + mi * 60 + s,
+                ip=m["ip"],
+            )
+        )
+    return sessions
+
+
+# --------------------------------------------------------------------------
+# show locked-out
+# --------------------------------------------------------------------------
+
+
+def parse_locked_out(text: str) -> int | None:
+    """Parse `show locked-out` -> number of locked accounts."""
+    m = re.search(r"Total\s+(\d+)\s+locked", clean(text), re.IGNORECASE)
+    return int(m.group(1)) if m else None
+
+
+# --------------------------------------------------------------------------
+# show vlan
+# --------------------------------------------------------------------------
+
+_VLAN_RE = re.compile(
+    r"^(?P<id>\d+)\s+(?P<name>.+?)\s+(?P<zone>Trusted|Optional|Custom|External)\s+"
+    rf"(?P<address>{_IP_RE}/\d+)\s+(?P<members>\S+?)\s*(?P<node>IPv\d.*)$",
+    re.IGNORECASE,
+)
+
+
+@dataclass(slots=True)
+class Vlan:
+    """A VLAN object."""
+
+    id: int
+    name: str
+    zone: str
+    address: str
+    members: str
+
+
+def parse_vlans(text: str) -> dict[int, Vlan]:
+    """Parse `show vlan` (summary table)."""
+    result: dict[int, Vlan] = {}
+    for line in clean(text).splitlines():
+        m = _VLAN_RE.match(line.strip())
+        if m:
+            vid = int(m["id"])
+            result[vid] = Vlan(
+                id=vid,
+                name=m["name"].strip(),
+                zone=m["zone"].lower(),
+                address=m["address"],
+                members=m["members"],
+            )
+    return result

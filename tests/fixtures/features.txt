@@ -1,0 +1,31 @@
+--
+-- Summary
+--
+Model: T25
+Serial Number: D0000000000AA
+Software Edition: Fireware XTM Pro
+Expiration: never
+Signature: 0000000000000000-0000000000000000
+
+--
+-- Total 40 Feature(s)
+--
+Feature                   Capacity  Status    Expiration
+MODEL                     T25       Disabled  Never
+ACCESS_PORTAL             0         Enabled   00:59:59PST 09/09/2027
+APP_CONTROL               0         Enabled   00:59:59PST 09/09/2027
+APT                       0         Enabled   00:59:59PST 09/09/2027
+AUTHENTICATED_USER        0         Enabled   Never
+AV                        0         Enabled   00:59:59PST 09/09/2027
+BOVPN_TUNNEL              10        Enabled   Never
+DNSWATCH                  0         Enabled   00:59:59PST 09/09/2027
+FIREWARE_XTM              0         Enabled   Never
+IPS                       0         Enabled   00:59:59PST 09/09/2027
+LIVESECURITY              0         Enabled   00:59:59PST 09/09/2027
+SESSION                   100000    Enabled   Never
+SPAMBLOCKER               0         Enabled   00:59:59PST 09/09/2027
+SUPPORT                   0         Enabled   00:59:59PST 09/09/2027
+TDR                       0         Enabled   00:59:59PST 09/09/2027
+WEBBLOCKER                0         Enabled   00:59:59PST 09/09/2027
+XTM_PRO                   0         Enabled   Never
+SERVER_LOAD_BALANCING     0         Enabled   Never

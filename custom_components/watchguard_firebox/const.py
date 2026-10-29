@@ -21,3 +21,13 @@ CMD_SYSINFO: Final = "show sysinfo"
 CMD_INTERFACE: Final = "show interface"
 CMD_ARP: Final = "show arp"
 CMD_DHCP: Final = "show dhcp lease"
+CMD_FEATURES: Final = "show features"
+CMD_UPGRADE: Final = "show upgrade"
+CMD_SIGNATURE: Final = "show signature-update"
+CMD_LOGIN_USER: Final = "show login-user"
+CMD_LOCKED_OUT: Final = "show locked-out"
+CMD_VLAN: Final = "show vlan"
+
+# Slow-changing data (licences, upgrade history, signature config, VLANs)
+SLOW_POLL_INTERVAL: Final = 3600
+LICENSE_WARNING_DAYS: Final = 30

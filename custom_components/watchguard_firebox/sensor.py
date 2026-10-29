@@ -16,6 +16,9 @@ from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfInformation
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from homeassistant.core import callback
+from homeassistant.util import dt as dt_util
+
 from .coordinator import FireboxConfigEntry, FireboxCoordinator, FireboxData
 from .entity import FireboxEntity
 
@@ -121,7 +124,84 @@ SENSORS: tuple[FireboxSensorDescription, ...] = (
         value_fn=lambda d: None if d.dhcp is None else len(d.dhcp),
         attrs_fn=lambda d: _leases_per_interface(d),
     ),
+    FireboxSensorDescription(
+        key="license_expiration",
+        translation_key="license_expiration",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda d: _next_expiry(d)[0],
+        attrs_fn=lambda d: _license_attrs(d),
+    ),
+    FireboxSensorDescription(
+        key="last_upgrade",
+        translation_key="last_upgrade",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: _last_upgrade(d).time if _last_upgrade(d) else None,
+        attrs_fn=lambda d: _upgrade_attrs(d),
+    ),
+    FireboxSensorDescription(
+        key="admin_sessions",
+        translation_key="admin_sessions",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: None if d.sessions is None else len(d.other_sessions),
+        attrs_fn=lambda d: {
+            "sessions": [
+                {"user": s.user, "domain": s.domain, "role": s.role, "ip": s.ip, "elapsed_s": s.elapsed}
+                for s in d.other_sessions
+            ],
+            "total_including_home_assistant": len(d.sessions or []),
+        },
+    ),
+    FireboxSensorDescription(
+        key="locked_out_users",
+        translation_key="locked_out_users",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.locked_out,
+    ),
 )
+
+
+def _next_expiry(d: FireboxData):
+    """(earliest expiration, [feature names expiring then])."""
+    feats = d.slow.features
+    if not feats:
+        return None, []
+    dated = [f for f in feats.values() if f.enabled and f.expiration is not None]
+    if not dated:
+        return None, []
+    first = min(f.expiration for f in dated)
+    return first, sorted(f.name for f in dated if f.expiration == first)
+
+
+def _license_attrs(d: FireboxData) -> dict[str, Any]:
+    first, names = _next_expiry(d)
+    attrs: dict[str, Any] = {"edition": d.slow.edition, "next_expiring": names}
+    if first is not None:
+        attrs["days_remaining"] = (first - dt_util.utcnow()).days
+    attrs["features"] = {
+        f.name: f.expiration.isoformat() if f.expiration else "never"
+        for f in (d.slow.features or {}).values()
+        if f.enabled
+    }
+    return attrs
+
+
+def _last_upgrade(d: FireboxData):
+    ups = d.slow.upgrades
+    return ups[-1] if ups else None
+
+
+def _upgrade_attrs(d: FireboxData) -> dict[str, Any] | None:
+    last = _last_upgrade(d)
+    if last is None:
+        return None
+    return {
+        "version": last.version,
+        "build": last.build,
+        "action": last.action,
+        "status": last.status,
+        "comment": last.comment,
+    }
 
 
 def _leases_per_interface(d: FireboxData) -> dict[str, Any]:
@@ -138,6 +218,18 @@ async def async_setup_entry(
 ) -> None:
     coordinator = entry.runtime_data
     async_add_entities(FireboxSensor(coordinator, desc) for desc in SENSORS)
+
+    known: set[int] = set()
+
+    @callback
+    def _add_vlans() -> None:
+        new = [v for v in coordinator.data.slow.vlans if v not in known]
+        if new:
+            known.update(new)
+            async_add_entities(FireboxVlanDevicesSensor(coordinator, v) for v in new)
+
+    _add_vlans()
+    entry.async_on_unload(coordinator.async_add_listener(_add_vlans))
 
 
 class FireboxSensor(FireboxEntity, SensorEntity):
@@ -160,3 +252,40 @@ class FireboxSensor(FireboxEntity, SensorEntity):
         if self.entity_description.attrs_fn is None:
             return None
         return self.entity_description.attrs_fn(self.coordinator.data)
+
+
+class FireboxVlanDevicesSensor(FireboxEntity, SensorEntity):
+    """Number of devices active on a VLAN (complete ARP entries)."""
+
+    _attr_translation_key = "vlan_devices"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: FireboxCoordinator, vlan_id: int) -> None:
+        super().__init__(coordinator, f"vlan_{vlan_id}_devices")
+        self._vlan_id = vlan_id
+        vlan = coordinator.data.slow.vlans[vlan_id]
+        self._attr_translation_placeholders = {"name": vlan.name}
+
+    @property
+    def available(self) -> bool:
+        return super().available and self._vlan_id in self.coordinator.data.slow.vlans
+
+    @property
+    def native_value(self) -> int:
+        iface = f"vlan{self._vlan_id}"
+        return sum(1 for e in self.coordinator.data.arp if e.mac and e.interface == iface)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        data = self.coordinator.data
+        vlan = data.slow.vlans.get(self._vlan_id)
+        if vlan is None:
+            return None
+        leases = [l for l in data.dhcp or [] if l.interface == vlan.name]
+        return {
+            "vlan_id": vlan.id,
+            "zone": vlan.zone,
+            "address": vlan.address,
+            "members": vlan.members,
+            "dhcp_leases": len(leases),
+        }

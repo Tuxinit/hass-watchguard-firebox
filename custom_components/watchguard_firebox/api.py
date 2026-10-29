@@ -66,6 +66,8 @@ class FireboxClient:
         self._proc: asyncssh.SSHClientProcess | None = None
         self._lock = asyncio.Lock()
         self.host_key_fingerprint: str | None = None
+        self.local_ip: str | None = None
+        self.username = username
 
     # ------------------------------------------------------------------ #
 
@@ -89,6 +91,9 @@ class FireboxClient:
             raise FireboxAuthError(str(err)) from err
         except (OSError, asyncssh.Error, TimeoutError) as err:
             raise FireboxConnectionError(f"{self._host}:{self._port}: {err}") from err
+
+        sockname = self._conn.get_extra_info("sockname")
+        self.local_ip = sockname[0] if sockname else None
 
         key = self._conn.get_server_host_key()
         fingerprint = key.get_fingerprint("sha256") if key else None

@@ -1,0 +1,11 @@
+--
+-- Total 7 VLAN object(s)
+--
+VLAN-ID   Name                 Zone                Address     Interface(s)   IP-Node-Type
+5         JURASSIC DOMO        Optional        172.25.5.1/24  1(tagged),4(tagged)IPv4 Only
+1         JURASSIC-ADMIN       Trusted      192.168.134.1/24  1(untagged),3(untagged),4(untagged)IPv4 Only
+4         JURASSIC-CONNECT     Optional        172.25.4.1/24  4(tagged)      IPv4 Only
+2         JURASSIC-LAN         Trusted         172.25.2.1/24  1(tagged)      IPv4 Only
+98        JURASSIC-MEDIA       Custom           10.98.0.1/28  3(tagged)      IPv4 Only
+3         JURASSIC-PARK        Trusted         172.25.3.1/24  4(tagged)      IPv4 Only
+99        JURASSIC-SERVEURS    Custom           10.99.0.1/24  3(tagged)      IPv4 Only

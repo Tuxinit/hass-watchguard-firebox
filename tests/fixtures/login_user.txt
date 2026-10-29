@@ -1,0 +1,6 @@
+--
+-- Total 2 User(s)
+--
+User Name              Auth Domain     Role                   Elapsed Time        IP Address       Login Limit
+ha_monitor             Firebox-DB      Device Monitor         0  days 01:26:32    172.25.5.50      2 / Unlimited
+ha_monitor             Firebox-DB      Device Monitor         0  days 00:01:29    172.25.3.109     2 / Unlimited

@@ -83,3 +83,37 @@ async def test_auth_error_triggers_reauth(hass: HomeAssistant, mock_client) -> N
     await hass.async_block_till_done()
     flows = hass.config_entries.flow.async_progress()
     assert any(f["context"]["source"] == "reauth" for f in flows)
+
+
+async def test_mcs_mco_entities(hass: HomeAssistant, mock_client) -> None:
+    await _setup(hass)
+    exp = hass.states.get("sensor.jurassic_t25_subscriptions_expiration")
+    assert exp.state == "2027-09-09T08:59:59+00:00"
+    assert "IPS" in exp.attributes["next_expiring"]
+    assert exp.attributes["features"]["BOVPN_TUNNEL"] == "never"
+    assert hass.states.get("binary_sensor.jurassic_t25_subscriptions_expiring_soon").state == "off"
+    assert hass.states.get("binary_sensor.jurassic_t25_signature_auto_update_disabled").state == "off"
+    assert hass.states.get("binary_sensor.jurassic_t25_last_upgrade_failed").state == "off"
+    up = hass.states.get("sensor.jurassic_t25_last_fireware_upgrade")
+    assert up.attributes["version"] == "12.12.3"
+    # Firebox local time 21:01:04, test instance runs in America/Los_Angeles (UTC-7)
+    assert up.state == "2026-10-08T04:01:04+00:00"
+    # HA's own session (ha_monitor @ 172.25.5.50) is excluded
+    sess = hass.states.get("sensor.jurassic_t25_management_sessions")
+    assert sess.state == "1"
+    assert sess.attributes["sessions"][0]["ip"] == "172.25.3.109"
+    assert sess.attributes["total_including_home_assistant"] == 2
+    assert hass.states.get("sensor.jurassic_t25_locked_out_accounts").state == "0"
+    domo = hass.states.get("sensor.jurassic_t25_devices_jurassic_domo")
+    assert domo.state == "4"  # .200 .102 .50 .100 (.52 is incomplete)
+    assert domo.attributes["dhcp_leases"] == 5
+    assert domo.attributes["zone"] == "optional"
+
+
+async def test_slow_commands_hourly(hass: HomeAssistant, mock_client) -> None:
+    entry = await _setup(hass)
+    first = mock_client.run.call_args_list[-1].args[0]
+    assert "show features" in first
+    await entry.runtime_data.async_refresh()
+    second = mock_client.run.call_args_list[-1].args[0]
+    assert "show features" not in second and "show login-user" in second

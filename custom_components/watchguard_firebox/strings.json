@@ -77,11 +77,35 @@
       },
       "dhcp_leases": {
         "name": "DHCP leases"
+      },
+      "license_expiration": {
+        "name": "Subscriptions expiration"
+      },
+      "last_upgrade": {
+        "name": "Last Fireware upgrade"
+      },
+      "admin_sessions": {
+        "name": "Management sessions"
+      },
+      "locked_out_users": {
+        "name": "Locked-out accounts"
+      },
+      "vlan_devices": {
+        "name": "Devices {name}"
       }
     },
     "binary_sensor": {
       "interface": {
         "name": "Interface {name}"
+      },
+      "license_expiring": {
+        "name": "Subscriptions expiring soon"
+      },
+      "signature_auto_update": {
+        "name": "Signature auto-update disabled"
+      },
+      "upgrade_failed": {
+        "name": "Last upgrade failed"
       }
     },
     "device_tracker": {

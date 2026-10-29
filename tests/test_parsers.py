@@ -66,3 +66,63 @@ def test_dhcp():
 def test_cli_error():
     assert p.is_cli_error("% Error: invalid input detected")
     assert not p.is_cli_error(_load("arp.txt"))
+
+
+def test_features():
+    from datetime import timezone
+    f = p.parse_features(_load("features.txt"))
+    assert f["edition"] == "Fireware XTM Pro"
+    feats = f["features"]
+    assert feats["IPS"].enabled
+    assert feats["IPS"].expiration == datetime(2027, 9, 9, 8, 59, 59, tzinfo=timezone.utc)
+    assert feats["BOVPN_TUNNEL"].expiration is None
+    assert feats["BOVPN_TUNNEL"].capacity == "10"
+    assert not feats["MODEL"].enabled
+    assert "SERVER_LOAD_BALANCING" in feats
+
+
+def test_upgrade():
+    h = p.parse_upgrade_history(_load("upgrade.txt"))
+    assert len(h) == 4
+    last = h[-1]
+    assert last.action == "Cloud Upgrade"
+    assert last.version == "12.12.3" and last.build == "747886"
+    assert last.success
+    assert last.time == datetime(2026, 10, 7, 21, 1, 4)
+    assert h[0].action == "Install"
+
+
+def test_signature_update():
+    s = p.parse_signature_update(_load("signature_update.txt"))
+    assert s["interval_hours"] == 1
+    assert s["auto"] == {
+        "IPS": True,
+        "GAV": True,
+        "Botnet": True,
+        "Geolocation Blocking": True,
+        "Tor Exit Node Blocking": True,
+    }
+
+
+def test_login_users():
+    sessions = p.parse_login_users(_load("login_user.txt"))
+    assert len(sessions) == 2
+    assert sessions[0].user == "ha_monitor"
+    assert sessions[0].role == "Device Monitor"
+    assert sessions[0].elapsed == 3600 + 26 * 60 + 32
+    assert sessions[1].ip == "172.25.3.109"
+
+
+def test_locked_out():
+    assert p.parse_locked_out(_load("locked_out.txt")) == 0
+    assert p.parse_locked_out("--\n--Total 3 locked users.\n") == 3
+    assert p.parse_locked_out("garbage") is None
+
+
+def test_vlans():
+    v = p.parse_vlans(_load("vlan.txt"))
+    assert sorted(v) == [1, 2, 3, 4, 5, 98, 99]
+    assert v[5].name == "JURASSIC DOMO" and v[5].zone == "optional"
+    assert v[5].members == "1(tagged),4(tagged)"
+    assert v[1].members == "1(untagged),3(untagged),4(untagged)"
+    assert v[98].address == "10.98.0.1/28"

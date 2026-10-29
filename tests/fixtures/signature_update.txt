@@ -1,0 +1,10 @@
+--
+-- Signature Update Configuration
+--
+server URL                                          : https://services.watchguard.com
+automatic update interval                           : 1(hour(s))
+automatic IPS signature update                      : enabled
+automatic GAV signature update                      : enabled
+automatic Botnet signature update                   : enabled
+automatic Geolocation Blocking database update      : enabled
+automatic Tor Exit Node Blocking signature update   : enabled

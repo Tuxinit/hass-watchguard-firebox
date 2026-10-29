@@ -10,7 +10,7 @@ pfSense expose une API XML-RPC locale ; Fireware n'a pas d'équivalent pour un F
 
 Testée sur un Firebox T25, Fireware 12.12.3.
 
-## Fonctionnalités (v0.1 — supervision seule)
+## Fonctionnalités (v0.2 — supervision MCO/MCS)
 
 | Entité | Source CLI | Activée par défaut |
 |---|---|---|
@@ -22,6 +22,19 @@ Testée sur un Firebox T25, Fireware 12.12.3.
 | Nombre d'entrées ARP | `show arp` | oui |
 | Nombre de baux DHCP (+ détail par interface en attribut) | `show dhcp lease` | oui |
 | Suivi de présence (`device_tracker`) par adresse MAC | `show arp` + `show dhcp lease` | appareils choisis dans les options |
+| Appareils actifs par VLAN (+ zone, adresse, baux DHCP en attributs) | `show arp` + `show vlan` | oui |
+
+**MCO / MCS** (licences, historique et VLAN relus toutes les heures ; sessions et comptes verrouillés à chaque cycle) :
+
+| Entité | Source CLI | Usage |
+|---|---|---|
+| Expiration des abonnements (horodatage + jours restants, détail par service) | `show features` | la plus proche expiration parmi les services actifs |
+| Abonnements bientôt expirés (problème) | `show features` | `on` à moins de 30 jours |
+| Dernière mise à jour Fireware (horodatage, version, build) | `show upgrade` | suivi des montées de version |
+| Échec de la dernière mise à jour (problème) | `show upgrade` | diagnostic |
+| MAJ auto des signatures désactivée (problème) | `show signature-update` | IPS, GAV, Botnet, Geolocation, Tor |
+| Sessions d'administration (hors Home Assistant) | `show login-user` | qui est connecté au Firebox, depuis quelle IP |
+| Comptes verrouillés | `show locked-out` | tentative de brute force |
 
 L'intégration n'envoie aucune commande de configuration : elle ne fait que des `show`.
 
@@ -61,7 +74,8 @@ Même logique que hass-pfsense : un appareil est *home* si sa MAC apparaît avec
 - [ ] Débits par interface (SNMPv3, compteurs IF-MIB 64 bits)
 - [ ] État des tunnels VPN (`show vpn-status`)
 - [ ] Utilisateurs authentifiés (`show users`)
-- [ ] Services de sécurité : état et licences (`show features`)
+- [x] Licences, historique des mises à jour, signatures, sessions d'administration, comptes verrouillés (v0.2)
+- [ ] État de chaque service de sécurité (IPS, GAV, APT…) au niveau des policies
 - [ ] Actions optionnelles (compte admin) : redémarrage, activer/désactiver une policy, bloquer une IP
 
 ## Développement
@@ -76,3 +90,24 @@ Les tests rejouent des sorties CLI réelles (anonymisées) dans `tests/fixtures/
 ## Licence
 
 MIT
+
+## Exemple d'automatisation : session d'administration inattendue
+
+```yaml
+automation:
+  - alias: Firebox — session d'administration
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.jurassic_t25_sessions_d_administration
+        above: 0
+    actions:
+      - action: notify.mobile_app_mon_telephone
+        data:
+          title: Firebox
+          message: >-
+            Session d'administration ouverte :
+            {{ state_attr(trigger.entity_id, 'sessions')
+               | map(attribute='user') | join(', ') }}
+            depuis {{ state_attr(trigger.entity_id, 'sessions')
+               | map(attribute='ip') | join(', ') }}
+```

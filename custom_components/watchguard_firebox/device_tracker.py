@@ -88,7 +88,7 @@ class FireboxScanner(CoordinatorEntity[FireboxCoordinator], ScannerEntity):
         if (seen := data.last_seen.get(self._mac)) is not None:
             attrs["last_seen"] = seen.isoformat()
         if (arp := data.arp_by_mac.get(self._mac)) is not None:
-            attrs["interface"] = arp.interface
+            attrs["interface"] = data.vlan_name(arp.interface)
         if (lease := data.leases_by_mac.get(self._mac)) is not None:
             attrs["dhcp_interface"] = lease.interface
             if lease.end:

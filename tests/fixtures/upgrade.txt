@@ -1,0 +1,8 @@
+--
+-- Total Upgrade History 15 Line(s)
+--
+Time                 Action      Version  Build        Status   Comment
+08/23/2023:00:00:00  Install     12.10    685791       Success  Install completed
+09/08/2024:15:30:31  Upgrade     12.10.4  702217       Success  SYSA | Upgrade completed
+09/01/2026:01:23:58  Cloud Upgrade 12.12.2  745592       Success  SYSA | Cloud Upgrade completed
+10/07/2026:21:01:04  Cloud Upgrade 12.12.3  747886       Success  SYSA | Cloud Upgrade completed

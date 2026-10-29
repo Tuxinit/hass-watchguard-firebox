@@ -77,11 +77,35 @@
       },
       "dhcp_leases": {
         "name": "Baux DHCP"
+      },
+      "license_expiration": {
+        "name": "Expiration des abonnements"
+      },
+      "last_upgrade": {
+        "name": "Dernière mise à jour Fireware"
+      },
+      "admin_sessions": {
+        "name": "Sessions d'administration"
+      },
+      "locked_out_users": {
+        "name": "Comptes verrouillés"
+      },
+      "vlan_devices": {
+        "name": "Appareils {name}"
       }
     },
     "binary_sensor": {
       "interface": {
         "name": "Interface {name}"
+      },
+      "license_expiring": {
+        "name": "Abonnements bientôt expirés"
+      },
+      "signature_auto_update": {
+        "name": "MAJ auto des signatures désactivée"
+      },
+      "upgrade_failed": {
+        "name": "Échec de la dernière mise à jour"
       }
     },
     "device_tracker": {
