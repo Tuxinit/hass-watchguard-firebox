@@ -190,4 +190,10 @@ class FireboxSyslogReceivingSensor(FireboxPushEntity, BinarySensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {"port": self._receiver.port, "error": self._receiver.error}
+        r = self._receiver
+        return {
+            "port": r.port,
+            "error": r.error,
+            "allowed_sources": sorted(r.allowed_sources),
+            "rejected_sources": dict(r.rejected_sources),
+        }

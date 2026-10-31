@@ -88,6 +88,7 @@ class FireboxSyslogReceiver:
         self.last_received: datetime | None = None
         self.lines_received = 0
         self.lines_rejected = 0
+        self.rejected_sources: dict[str, int] = {}
         self.lines_unparsed = 0
         self.unparsed_samples: deque[str] = deque(maxlen=SAMPLES)
         self.events_dropped = 0
@@ -151,6 +152,16 @@ class FireboxSyslogReceiver:
     def handle_datagram(self, data: bytes, source: str) -> None:
         if self.allowed_sources and source not in self.allowed_sources:
             self.lines_rejected += 1
+            if source not in self.rejected_sources:
+                _LOGGER.warning(
+                    "Syslog from %s ignored: not in allowed sources %s. If this is the "
+                    "Firebox, add %s to 'Allowed syslog source IP(s)' in the integration options",
+                    source, sorted(self.allowed_sources), source,
+                )
+            self.rejected_sources[source] = self.rejected_sources.get(source, 0) + 1
+            if len(self.rejected_sources) > 20:
+                self.rejected_sources.pop(next(iter(self.rejected_sources)))
+            self._dirty = True
             return
         text = data.decode("utf-8", errors="replace")
         for line in text.splitlines():
@@ -287,6 +298,7 @@ class FireboxSyslogReceiver:
             "allowed_sources": sorted(self.allowed_sources),
             "lines_received": self.lines_received,
             "lines_rejected": self.lines_rejected,
+            "rejected_sources": self.rejected_sources,
             "lines_unparsed": self.lines_unparsed,
             "events_dropped": self.events_dropped,
             "unparsed_samples": list(self.unparsed_samples),

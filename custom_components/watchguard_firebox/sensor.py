@@ -550,5 +550,7 @@ class FireboxSyslogLastReceived(_SyslogSensor):
             "error": r.error,
             "lines_received": r.lines_received,
             "lines_rejected": r.lines_rejected,
+            "rejected_sources": dict(r.rejected_sources),
+            "allowed_sources": sorted(r.allowed_sources),
             "lines_unparsed": r.lines_unparsed,
         }

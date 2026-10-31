@@ -98,7 +98,9 @@ Le menu *Diagnostics* de l'intégration montre les compteurs bruts, les IP rejet
 - **Interfaces** : état des interfaces, appareils actifs par VLAN, ARP/DHCP ;
 - **Carte** : connexions dans le monde (24 h), tableau des pays, dernière menace.
 
-Pour l'installer : *Tableau de bord > ⋮ > Modifier > ⋮ > Éditeur de configuration brute*, puis coller la vue sous `views:`.
+Pour l'installer : *Tableau de bord > ⋮ > Modifier > ⋮ > Éditeur de configuration brute*, puis coller la vue sous `views:`. [`dashboards/firebox-dashboard.yaml`](dashboards/firebox-dashboard.yaml) est la version complète, à coller telle quelle dans un tableau de bord neuf.
+
+Si le Firebox est rangé dans une pièce, les versions récentes de Home Assistant préfixent les nouvelles entités par le nom de la pièce (ex. `sensor.garage_jurassic_t25_…`) : adapte les identifiants, ou liste-les avec le modèle `{{ integration_entities('watchguard_firebox') }}` (*Outils de développement > Modèle*).
 
 Carte du monde seule :
 

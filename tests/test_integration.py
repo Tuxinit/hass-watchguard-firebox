@@ -247,6 +247,7 @@ async def test_syslog_counters_map_and_events(hass: HomeAssistant, mock_client, 
             break
         await asyncio.sleep(0.02)
     assert receiver.lines_rejected == 1 and receiver.totals["ips"] == 1
+    assert receiver.rejected_sources == {"127.0.0.1": 1}
 
     # counters survive a reload (persisted in .storage)
     await hass.config_entries.async_reload(entry.entry_id)
