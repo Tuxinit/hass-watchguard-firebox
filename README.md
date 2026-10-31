@@ -95,8 +95,6 @@ Le menu *Diagnostics* de l'intégration montre les compteurs bruts, les IP rejet
 
 ## Tableau de bord
 
-![Aperçu du tableau de bord](docs/dashboard.png)
-
 [`dashboards/firebox.yaml`](dashboards/firebox.yaml) contient une vue en cartes natives (aucun module front à installer), avec un bloc par thème :
 
 - **Statut Firebox** : jauges CPU/mémoire, licences, mises à jour, historique ;
