@@ -120,7 +120,7 @@ views:
                 name: Paquets refusés
           - type: markdown
             title: Dernières menaces
-            content: >-
+            content: |-
               | Heure | Type | Source | Pays | Détail |
               |---|---|---|---|---|
               {% for t in state_attr('sensor.jurassic_t25_menaces_bloquees_24_h', 'recent') or [] -%}
@@ -205,14 +205,14 @@ views:
             default_zoom: 1
             aspect_ratio: "4:3"
           - type: markdown
-            content: >-
+            content: |-
               | | Pays | ⛔ | ✓ |
               |---|---|---:|---:|
               {% for c in state_attr('sensor.jurassic_t25_pays_bloques_24_h', 'top') or [] -%}
               | {{ c.flag }} | {{ c.country }} | {{ c.blocked }} | {{ c.allowed }} |
               {% endfor %}
           - type: markdown
-            content: >-
+            content: |-
               {% set t = state_attr('sensor.jurassic_t25_derniere_menace', 'category') %}
               {% if t %}**Dernière menace** : {{ t }} —
               {{ state_attr('sensor.jurassic_t25_derniere_menace', 'detail') or '' }}
