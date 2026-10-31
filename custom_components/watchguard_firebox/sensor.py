@@ -507,24 +507,36 @@ class FireboxCountries24h(_SyslogSensor):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        from .const import FLAGS_URL
         from .geo_location import country_info
 
-        rows = sorted(
-            self._receiver.window_countries().items(), key=lambda kv: kv[1][0], reverse=True
+        language = "fr" if (self.hass.config.language or "").startswith("fr") else "en"
+        window = self._receiver.window_countries()
+
+        def row(iso: str, blocked: int, allowed: int) -> dict[str, Any]:
+            info = country_info(iso, language)
+            return {
+                "iso3": iso,
+                "country": info["name"] if info else iso,
+                "flag": info["flag"] if info else "",
+                "flag_url": f"{FLAGS_URL}/{info['cca2'].lower()}.png" if info else None,
+                "blocked": blocked,
+                "allowed": allowed,
+            }
+
+        by_blocked = sorted(
+            ((i, b, a) for i, (b, a) in window.items() if b), key=lambda r: r[1], reverse=True
         )
-        top = []
-        for iso, (blocked, allowed) in rows[:15]:
-            info = country_info(iso)
-            top.append(
-                {
-                    "iso3": iso,
-                    "country": info["name"] if info else iso,
-                    "flag": info["flag"] if info else "",
-                    "blocked": blocked,
-                    "allowed": allowed,
-                }
-            )
-        return {"top": top}
+        by_allowed = sorted(
+            ((i, b, a) for i, (b, a) in window.items() if a), key=lambda r: r[2], reverse=True
+        )
+        return {
+            "top": [row(*r) for r in by_blocked[:15]],
+            "top_allowed": [row(*r) for r in by_allowed[:10]],
+            "blocked_total": sum(b for b, _ in window.values()),
+            "allowed_total": sum(a for _, a in window.values()),
+            "countries_allowed": len(by_allowed),
+        }
 
 
 class FireboxSyslogLastReceived(_SyslogSensor):

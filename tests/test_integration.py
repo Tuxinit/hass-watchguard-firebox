@@ -226,6 +226,10 @@ async def test_syslog_counters_map_and_events(hass: HomeAssistant, mock_client, 
     assert countries.state == "3"  # CHN, RUS, NLD
     assert countries.attributes["top"][0]["iso3"] == "CHN"
     assert countries.attributes["top"][0]["blocked"] == 2
+    assert countries.attributes["top"][0]["flag_url"] == "/watchguard_firebox_static/flags/cn.png"
+    assert countries.attributes["top_allowed"][0]["iso3"] == "USA"
+    assert countries.attributes["blocked_total"] == 4
+    assert countries.attributes["allowed_total"] == 1
     assert hass.states.get("binary_sensor.jurassic_t25_syslog_receiving").state == "on"
     assert sorted(e["category"] for e in events) == ["antivirus", "botnet", "ips"]
 

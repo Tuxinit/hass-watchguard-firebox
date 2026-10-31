@@ -205,12 +205,45 @@ views:
             default_zoom: 1
             aspect_ratio: "4:3"
           - type: markdown
+            title: Pays — 24 dernières heures
             content: |-
-              | | Pays | ⛔ | ✓ |
-              |---|---|---:|---:|
-              {% for c in state_attr('sensor.jurassic_t25_pays_bloques_24_h', 'top') or [] -%}
-              | {{ c.flag }} | {{ c.country }} | {{ c.blocked }} | {{ c.allowed }} |
-              {% endfor %}
+              {%- set s = 'sensor.jurassic_t25_pays_bloques_24_h' -%}
+              {%- set top = state_attr(s, 'top') or [] -%}
+              {%- set dest = state_attr(s, 'top_allowed') or [] -%}
+              {%- set bt = state_attr(s, 'blocked_total') or 0 -%}
+              {%- set at = state_attr(s, 'allowed_total') or 0 -%}
+              <ha-alert alert-type="info">Sur les <b>24 dernières heures</b> : <b>{{ bt }}</b> connexions bloquées venant de <b>{{ top | count }}</b> pays, et <b>{{ at }}</b> connexions autorisées vers <b>{{ state_attr(s, 'countries_allowed') or 0 }}</b> pays.</ha-alert>
+
+              ### ⛔ Connexions bloquées, par pays
+              {% if top %}
+              | | Pays | Volume | Bloquées | Part |
+              |:-:|:--|:--|--:|--:|
+              {%- set mx = top[0].blocked %}
+              {%- for c in top[:10] %}
+              {%- set n = ((c.blocked / mx) * 10) | round(0, 'ceil') | int %}
+              | <img src="{{ c.flag_url }}" width="22"> | {{ c.country }} | {{ '▰' * n }}{{ '▱' * (10 - n) }} | **{{ c.blocked }}** | {{ ((c.blocked / bt) * 100) | round(0) | int }} % |
+              {%- endfor %}
+              {% if top | count > 10 %}
+              <sub>… et {{ top | count - 10 }} autre(s) pays.</sub>
+              {% endif %}
+              {% else %}
+              Aucune connexion bloquée sur les dernières 24 h. 👍
+              {% endif %}
+
+              ### ✅ Connexions autorisées, par pays
+              {% if dest %}
+              | | Pays | Volume | Autorisées | Part |
+              |:-:|:--|:--|--:|--:|
+              {%- set mx = dest[0].allowed %}
+              {%- for c in dest[:5] %}
+              {%- set n = ((c.allowed / mx) * 10) | round(0, 'ceil') | int %}
+              | <img src="{{ c.flag_url }}" width="22"> | {{ c.country }} | {{ '▰' * n }}{{ '▱' * (10 - n) }} | **{{ c.allowed }}** | {{ ((c.allowed / at) * 100) | round(0) | int }} % |
+              {%- endfor %}
+              {% else %}
+              Aucune connexion autorisée journalisée (active *Send a log message* sur les policies à suivre).
+              {% endif %}
+
+              <sub>Le pays est celui de l'adresse Internet de la connexion (champs geo_src / geo_dst de Fireware). <b>Bloquées</b> : refusées par le Firebox (pare-feu, IPS, botnet, géolocalisation…). <b>Autorisées</b> : uniquement le trafic des policies qui journalisent.</sub>
           - type: markdown
             content: |-
               {% set t = state_attr('sensor.jurassic_t25_derniere_menace', 'category') %}
