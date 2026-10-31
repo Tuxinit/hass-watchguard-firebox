@@ -1,0 +1,222 @@
+# Tableau de bord complet "Firebox" — à coller dans l'éditeur de configuration brute
+# d'un tableau de bord NEUF (remplace tout le contenu).
+title: Firebox
+views:
+  - title: Firebox
+    path: firebox
+    icon: mdi:wall-fire
+    type: sections
+    max_columns: 4
+    sections:
+      # ------------------------------------------------------------------ STATUT
+      - type: grid
+        cards:
+          - type: heading
+            heading: Statut Firebox
+            icon: mdi:server-network
+          - type: gauge
+            entity: sensor.jurassic_t25_cpu_1_min
+            name: CPU
+            needle: true
+            severity: {green: 0, yellow: 60, red: 85}
+          - type: gauge
+            entity: sensor.jurassic_t25_memoire_utilisee
+            name: Mémoire
+            needle: true
+            severity: {green: 0, yellow: 70, red: 90}
+          - type: tile
+            entity: sensor.jurassic_t25_expiration_des_abonnements
+            name: Licences
+            icon: mdi:license
+            grid_options: {columns: 12}
+          - type: tile
+            entity: binary_sensor.jurassic_t25_abonnements_bientot_expires
+            name: Expiration < 30 j
+          - type: tile
+            entity: binary_sensor.jurassic_t25_echec_de_la_derniere_mise_a_jour
+            name: Mise à jour
+          - type: entities
+            entities:
+              - entity: sensor.jurassic_t25_version_fireware
+                name: Fireware
+              - entity: sensor.jurassic_t25_derniere_mise_a_jour_fireware
+                name: Dernière mise à jour
+              - entity: sensor.jurassic_t25_dernier_demarrage
+                name: Démarrage
+          - type: history-graph
+            hours_to_show: 24
+            entities:
+              - entity: sensor.jurassic_t25_cpu_1_min
+                name: CPU
+              - entity: sensor.jurassic_t25_memoire_utilisee
+                name: Mémoire
+
+      # ---------------------------------------------------------------- SÉCURITÉ
+      - type: grid
+        cards:
+          - type: heading
+            heading: Sécurité
+            icon: mdi:shield-check
+          - type: tile
+            entity: sensor.jurassic_t25_menaces_bloquees_24_h
+            name: Menaces (24 h)
+            color: red
+          - type: tile
+            entity: sensor.jurassic_t25_pays_bloques_24_h
+            name: Pays (24 h)
+            color: orange
+          - type: tile
+            entity: sensor.jurassic_t25_sessions_d_administration
+            name: Admins connectés
+            color: purple
+          - type: tile
+            entity: sensor.jurassic_t25_comptes_verrouilles
+            name: Comptes verrouillés
+          - type: tile
+            entity: binary_sensor.jurassic_t25_maj_auto_des_signatures_desactivee
+            name: Signatures auto
+            grid_options: {columns: 12}
+          - type: statistics-graph
+            title: Menaces bloquées par jour
+            chart_type: bar
+            period: day
+            days_to_show: 14
+            stat_types: [change]
+            entities:
+              - entity: sensor.jurassic_t25_detections_ips
+                name: IPS
+              - entity: sensor.jurassic_t25_malwares_bloques_av
+                name: Malwares
+              - entity: sensor.jurassic_t25_menaces_apt_blocker
+                name: APT
+              - entity: sensor.jurassic_t25_botnets_bloques
+                name: Botnets
+              - entity: sensor.jurassic_t25_blocages_geolocalisation
+                name: Géoloc.
+              - entity: sensor.jurassic_t25_attaques_reseau_bloquees
+                name: Attaques
+          - type: entities
+            title: Totaux
+            entities:
+              - entity: sensor.jurassic_t25_detections_ips
+                name: IPS
+              - entity: sensor.jurassic_t25_malwares_bloques_av
+                name: Malwares (AV)
+              - entity: sensor.jurassic_t25_menaces_apt_blocker
+                name: APT Blocker
+              - entity: sensor.jurassic_t25_botnets_bloques
+                name: Botnets
+              - entity: sensor.jurassic_t25_blocages_geolocalisation
+                name: Géolocalisation
+              - entity: sensor.jurassic_t25_blocages_webblocker
+                name: WebBlocker
+              - entity: sensor.jurassic_t25_sites_bloques
+                name: Sites bloqués
+              - entity: sensor.jurassic_t25_attaques_reseau_bloquees
+                name: Attaques réseau
+              - entity: sensor.jurassic_t25_echecs_de_connexion_admin
+                name: Échecs connexion admin
+              - entity: sensor.jurassic_t25_paquets_refuses
+                name: Paquets refusés
+          - type: markdown
+            title: Dernières menaces
+            content: >-
+              | Heure | Type | Source | Pays | Détail |
+              |---|---|---|---|---|
+              {% for t in state_attr('sensor.jurassic_t25_menaces_bloquees_24_h', 'recent') or [] -%}
+              | {{ as_timestamp(t.time) | timestamp_custom('%d/%m %H:%M') }} | {{ t.category }} | {{ t.remote_ip or t.src_ip }} | {{ t.country or '' }} | {{ (t.detail or '')[:40] }} |
+              {% endfor %}
+          - type: entities
+            title: Abonnements
+            entities:
+              - entity: sensor.jurassic_t25_abonnement_ips
+                name: IPS
+              - entity: sensor.jurassic_t25_abonnement_gateway_antivirus
+                name: Gateway AV
+              - entity: sensor.jurassic_t25_abonnement_apt_blocker
+                name: APT Blocker
+              - entity: sensor.jurassic_t25_abonnement_webblocker
+                name: WebBlocker
+              - entity: sensor.jurassic_t25_abonnement_dnswatch
+                name: DNSWatch
+              - entity: sensor.jurassic_t25_abonnement_threatsync_tdr
+                name: ThreatSync (TDR)
+              - entity: sensor.jurassic_t25_abonnement_livesecurity
+                name: LiveSecurity
+
+      # -------------------------------------------------------------- INTERFACES
+      - type: grid
+        cards:
+          - type: heading
+            heading: Interfaces
+            icon: mdi:ethernet
+          - type: tile
+            entity: binary_sensor.jurassic_t25_interface_external
+            name: External (WAN)
+          - type: tile
+            entity: binary_sensor.jurassic_t25_interface_vlan_home
+            name: VLAN_HOME
+          - type: tile
+            entity: binary_sensor.jurassic_t25_interface_vlans_serveurs2
+            name: VLANS-SERVEURS2
+          - type: tile
+            entity: binary_sensor.jurassic_t25_interface_vlans_wifi
+            name: VLANS-WIFI
+          - type: entities
+            title: Appareils actifs par VLAN
+            entities:
+              - entity: sensor.jurassic_t25_appareils_jurassic_domo
+                name: DOMO
+              - entity: sensor.jurassic_t25_appareils_jurassic_park
+                name: PARK
+              - entity: sensor.jurassic_t25_appareils_jurassic_lan
+                name: LAN
+              - entity: sensor.jurassic_t25_appareils_jurassic_admin
+                name: ADMIN
+              - entity: sensor.jurassic_t25_appareils_jurassic_connect
+                name: CONNECT
+              - entity: sensor.jurassic_t25_appareils_jurassic_media
+                name: MEDIA
+              - entity: sensor.jurassic_t25_appareils_jurassic_serveurs
+                name: SERVEURS
+          - type: tile
+            entity: sensor.jurassic_t25_entrees_arp
+            name: Entrées ARP
+          - type: tile
+            entity: sensor.jurassic_t25_baux_dhcp
+            name: Baux DHCP
+          - type: history-graph
+            hours_to_show: 24
+            entities:
+              - entity: sensor.jurassic_t25_appareils_jurassic_domo
+                name: DOMO
+              - entity: sensor.jurassic_t25_appareils_jurassic_park
+                name: PARK
+
+      # ------------------------------------------------------------------- CARTE
+      - type: grid
+        cards:
+          - type: heading
+            heading: Connexions dans le monde (24 h)
+            icon: mdi:earth
+          - type: map
+            geo_location_sources:
+              - watchguard_firebox
+            default_zoom: 1
+            aspect_ratio: "4:3"
+          - type: markdown
+            content: >-
+              | | Pays | ⛔ | ✓ |
+              |---|---|---:|---:|
+              {% for c in state_attr('sensor.jurassic_t25_pays_bloques_24_h', 'top') or [] -%}
+              | {{ c.flag }} | {{ c.country }} | {{ c.blocked }} | {{ c.allowed }} |
+              {% endfor %}
+          - type: markdown
+            content: >-
+              {% set t = state_attr('sensor.jurassic_t25_derniere_menace', 'category') %}
+              {% if t %}**Dernière menace** : {{ t }} —
+              {{ state_attr('sensor.jurassic_t25_derniere_menace', 'detail') or '' }}
+              depuis `{{ state_attr('sensor.jurassic_t25_derniere_menace', 'remote_ip') or '?' }}`
+              ({{ state_attr('sensor.jurassic_t25_derniere_menace', 'country') or '?' }}),
+              {{ relative_time(states.sensor.jurassic_t25_derniere_menace.last_changed) }}
+              {% else %}Aucune menace reçue pour l'instant.{% endif %}
