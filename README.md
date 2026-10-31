@@ -13,6 +13,10 @@ pfSense expose une API XML-RPC locale ; Fireware n'a pas d'équivalent pour un F
 
 Rien n'est à installer sur le Firebox. Testée sur un Firebox T25, Fireware 12.12.3.
 
+![Tableau de bord Firebox (Statut, Sécurité, Interfaces, pays)](docs/dashboard.png)
+
+*Le tableau de bord fourni dans [`dashboards/`](dashboards/), sur un Firebox T25.*
+
 ## Entités (v0.3)
 
 Toutes les entités sont rattachées à **un seul appareil**, le Firebox. La page d'un appareil Home Assistant n'a que des blocs fixes (Capteurs, Diagnostic…) : le regroupement par thème se fait dans la vue [`dashboards/firebox.yaml`](dashboards/firebox.yaml) (blocs Statut, Sécurité, Interfaces, Carte).
@@ -90,6 +94,8 @@ La géolocalisation vient des champs `geo_src` / `geo_dst` que Fireware ajoute a
 Le menu *Diagnostics* de l'intégration montre les compteurs bruts, les IP rejetées et des exemples de lignes non reconnues, utiles pour affiner la classification.
 
 ## Tableau de bord
+
+![Aperçu du tableau de bord](docs/dashboard.png)
 
 [`dashboards/firebox.yaml`](dashboards/firebox.yaml) contient une vue en cartes natives (aucun module front à installer), avec un bloc par thème :
 
