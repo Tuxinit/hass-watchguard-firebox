@@ -31,3 +31,8 @@ CMD_VLAN: Final = "show vlan"
 # Slow-changing data (licences, upgrade history, signature config, VLANs)
 SLOW_POLL_INTERVAL: Final = 3600
 LICENSE_WARNING_DAYS: Final = 30
+
+CONF_SYSLOG_ENABLED: Final = "syslog_enabled"
+CONF_SYSLOG_PORT: Final = "syslog_port"
+CONF_SYSLOG_SOURCES: Final = "syslog_sources"
+DEFAULT_SYSLOG_PORT: Final = 5514

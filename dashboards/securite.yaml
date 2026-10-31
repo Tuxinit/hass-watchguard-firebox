@@ -1,0 +1,158 @@
+# Tableau de bord "Sécurité Firebox" — vue Lovelace (cartes natives uniquement)
+# Tableau de bord > ⋮ > Modifier > ⋮ > Éditeur de configuration brute, puis coller
+# cette vue sous "views:".
+#
+# Les entity_id ci-dessous sont ceux créés par la v0.3 sur un Home Assistant en
+# français, pour un Firebox nommé JURASSIC-T25. Les entités qui existaient avant
+# la v0.3 gardent leur ancien ID (sans "securite_" / "interfaces_") : adapte-les.
+title: Sécurité
+path: securite
+icon: mdi:shield-lock
+type: sections
+max_columns: 3
+sections:
+  - type: grid
+    cards:
+      - type: heading
+        heading: Synthèse
+        icon: mdi:shield-check
+      - type: tile
+        entity: sensor.jurassic_t25_securite_menaces_bloquees_24_h
+        name: Menaces (24 h)
+        color: red
+      - type: tile
+        entity: sensor.jurassic_t25_securite_pays_bloques_24_h
+        name: Pays bloqués (24 h)
+        color: orange
+      - type: tile
+        entity: sensor.jurassic_t25_securite_sessions_d_administration
+        name: Admins connectés
+        color: purple
+      - type: tile
+        entity: sensor.jurassic_t25_securite_comptes_verrouilles
+        name: Comptes verrouillés
+      - type: tile
+        entity: binary_sensor.jurassic_t25_abonnements_bientot_expires
+        name: Abonnements
+      - type: tile
+        entity: binary_sensor.jurassic_t25_securite_maj_auto_des_signatures_desactivee
+        name: Signatures
+      - type: markdown
+        content: >-
+          {% set t = state_attr('sensor.jurassic_t25_securite_derniere_menace', 'category') %}
+          {% if t %}
+          **Dernière menace** : {{ t }} —
+          {{ state_attr('sensor.jurassic_t25_securite_derniere_menace', 'detail') or '' }}
+          depuis `{{ state_attr('sensor.jurassic_t25_securite_derniere_menace', 'remote_ip') or '?' }}`
+          ({{ state_attr('sensor.jurassic_t25_securite_derniere_menace', 'country') or '?' }}),
+          {{ relative_time(states.sensor.jurassic_t25_securite_derniere_menace.last_changed) }}
+          {% else %}Aucune menace reçue pour l'instant.{% endif %}
+
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: Carte des connexions (24 h)
+        icon: mdi:earth
+      - type: map
+        geo_location_sources:
+          - watchguard_firebox
+        default_zoom: 1
+        aspect_ratio: "16:9"
+      - type: markdown
+        content: >-
+          | | Pays | Bloquées | Autorisées |
+          |---|---|---:|---:|
+          {% for c in state_attr('sensor.jurassic_t25_securite_pays_bloques_24_h', 'top') or [] -%}
+          | {{ c.flag }} | {{ c.country }} | {{ c.blocked }} | {{ c.allowed }} |
+          {% endfor %}
+
+  - type: grid
+    cards:
+      - type: heading
+        heading: Menaces bloquées
+        icon: mdi:bug
+      - type: statistics-graph
+        title: Par jour
+        chart_type: bar
+        period: day
+        days_to_show: 14
+        stat_types: [change]
+        entities:
+          - entity: sensor.jurassic_t25_securite_detections_ips
+            name: IPS
+          - entity: sensor.jurassic_t25_securite_malwares_bloques_av
+            name: Malwares
+          - entity: sensor.jurassic_t25_securite_menaces_apt_blocker
+            name: APT
+          - entity: sensor.jurassic_t25_securite_botnets_bloques
+            name: Botnets
+          - entity: sensor.jurassic_t25_securite_blocages_geolocalisation
+            name: Géoloc.
+          - entity: sensor.jurassic_t25_securite_attaques_reseau_bloquees
+            name: Attaques
+      - type: entities
+        title: Totaux
+        entities:
+          - sensor.jurassic_t25_securite_detections_ips
+          - sensor.jurassic_t25_securite_malwares_bloques_av
+          - sensor.jurassic_t25_securite_menaces_apt_blocker
+          - sensor.jurassic_t25_securite_botnets_bloques
+          - sensor.jurassic_t25_securite_blocages_geolocalisation
+          - sensor.jurassic_t25_securite_blocages_webblocker
+          - sensor.jurassic_t25_securite_sites_bloques
+          - sensor.jurassic_t25_securite_attaques_reseau_bloquees
+          - sensor.jurassic_t25_securite_echecs_de_connexion_admin
+          - sensor.jurassic_t25_securite_paquets_refuses
+
+  - type: grid
+    cards:
+      - type: heading
+        heading: Dernières menaces
+        icon: mdi:format-list-bulleted
+      - type: markdown
+        content: >-
+          | Heure | Type | Source | Pays | Détail |
+          |---|---|---|---|---|
+          {% for t in state_attr('sensor.jurassic_t25_securite_menaces_bloquees_24_h', 'recent') or [] -%}
+          | {{ as_timestamp(t.time) | timestamp_custom('%d/%m %H:%M') }} | {{ t.category }} | {{ t.remote_ip or t.src_ip }} | {{ t.country or '' }} | {{ (t.detail or '')[:40] }} |
+          {% endfor %}
+
+  - type: grid
+    cards:
+      - type: heading
+        heading: Abonnements
+        icon: mdi:license
+      - type: entities
+        entities:
+          - sensor.jurassic_t25_expiration_des_abonnements
+          - sensor.jurassic_t25_securite_abonnement_ips
+          - sensor.jurassic_t25_securite_abonnement_gateway_antivirus
+          - sensor.jurassic_t25_securite_abonnement_apt_blocker
+          - sensor.jurassic_t25_securite_abonnement_webblocker
+          - sensor.jurassic_t25_securite_abonnement_dnswatch
+          - sensor.jurassic_t25_securite_abonnement_threatsync_tdr
+          - sensor.jurassic_t25_securite_abonnement_livesecurity
+
+  - type: grid
+    cards:
+      - type: heading
+        heading: Firebox
+        icon: mdi:wall-fire
+      - type: gauge
+        entity: sensor.jurassic_t25_cpu_1_min
+        name: CPU
+        needle: true
+        severity: {green: 0, yellow: 60, red: 85}
+      - type: gauge
+        entity: sensor.jurassic_t25_memoire_utilisee
+        name: Mémoire
+        needle: true
+        severity: {green: 0, yellow: 70, red: 90}
+      - type: entities
+        entities:
+          - binary_sensor.jurassic_t25_interfaces_external
+          - binary_sensor.jurassic_t25_securite_reception_syslog
+          - sensor.jurassic_t25_version_fireware
+          - sensor.jurassic_t25_derniere_mise_a_jour_fireware
+          - sensor.jurassic_t25_dernier_demarrage

@@ -41,9 +41,15 @@
           "scan_interval": "Scan interval (seconds)",
           "poll_dhcp": "Read DHCP leases",
           "consider_home": "Consider home (seconds)",
-          "tracked_macs": "Devices to track (ARP)"
+          "tracked_macs": "Devices to track (ARP)",
+          "syslog_enabled": "Receive Firebox syslog (threat counters, country map)",
+          "syslog_port": "Syslog UDP port",
+          "syslog_sources": "Allowed syslog source IP(s), comma separated"
         }
       }
+    },
+    "error": {
+      "invalid_ip": "Invalid IP address"
     }
   },
   "entity": {
@@ -92,11 +98,71 @@
       },
       "vlan_devices": {
         "name": "Devices {name}"
+      },
+      "subscription": {
+        "name": "Subscription {name}"
+      },
+      "syslog_ips": {
+        "name": "IPS detections"
+      },
+      "syslog_antivirus": {
+        "name": "Malware blocked (AV)"
+      },
+      "syslog_apt": {
+        "name": "APT Blocker threats"
+      },
+      "syslog_botnet": {
+        "name": "Botnet blocked"
+      },
+      "syslog_geolocation": {
+        "name": "Geolocation blocked"
+      },
+      "syslog_webblocker": {
+        "name": "WebBlocker blocked"
+      },
+      "syslog_reputation": {
+        "name": "Reputation (RED) blocked"
+      },
+      "syslog_dnswatch": {
+        "name": "DNSWatch blocked"
+      },
+      "syslog_tor": {
+        "name": "Tor exit nodes blocked"
+      },
+      "syslog_blocked_site": {
+        "name": "Blocked sites hits"
+      },
+      "syslog_attack": {
+        "name": "Network attacks blocked"
+      },
+      "syslog_admin_login_failed": {
+        "name": "Admin login failures"
+      },
+      "syslog_auth_failed": {
+        "name": "User authentication failures"
+      },
+      "syslog_denied": {
+        "name": "Packets denied"
+      },
+      "syslog_allowed": {
+        "name": "Connections allowed (logged)"
+      },
+      "threats_24h": {
+        "name": "Threats blocked (24 h)"
+      },
+      "last_threat": {
+        "name": "Last threat"
+      },
+      "countries_24h": {
+        "name": "Countries blocked (24 h)"
+      },
+      "syslog_last_received": {
+        "name": "Last syslog message"
       }
     },
     "binary_sensor": {
       "interface": {
-        "name": "Interface {name}"
+        "name": "{name}"
       },
       "license_expiring": {
         "name": "Subscriptions expiring soon"
@@ -106,12 +172,23 @@
       },
       "upgrade_failed": {
         "name": "Last upgrade failed"
+      },
+      "syslog_receiving": {
+        "name": "Syslog receiving"
       }
     },
     "device_tracker": {
       "tracked_device": {
         "name": "Tracked device"
       }
+    }
+  },
+  "device": {
+    "security": {
+      "name": "{name} Security"
+    },
+    "interfaces": {
+      "name": "{name} Interfaces"
     }
   }
 }

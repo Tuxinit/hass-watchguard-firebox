@@ -41,9 +41,15 @@
           "scan_interval": "Intervalle de scrutation (secondes)",
           "poll_dhcp": "Lire les baux DHCP",
           "consider_home": "Considérer présent pendant (secondes)",
-          "tracked_macs": "Appareils à suivre (ARP)"
+          "tracked_macs": "Appareils à suivre (ARP)",
+          "syslog_enabled": "Recevoir le syslog du Firebox (compteurs de menaces, carte des pays)",
+          "syslog_port": "Port UDP syslog",
+          "syslog_sources": "IP source(s) syslog autorisée(s), séparées par des virgules"
         }
       }
+    },
+    "error": {
+      "invalid_ip": "Adresse IP invalide"
     }
   },
   "entity": {
@@ -92,11 +98,71 @@
       },
       "vlan_devices": {
         "name": "Appareils {name}"
+      },
+      "subscription": {
+        "name": "Abonnement {name}"
+      },
+      "syslog_ips": {
+        "name": "Détections IPS"
+      },
+      "syslog_antivirus": {
+        "name": "Malwares bloqués (AV)"
+      },
+      "syslog_apt": {
+        "name": "Menaces APT Blocker"
+      },
+      "syslog_botnet": {
+        "name": "Botnets bloqués"
+      },
+      "syslog_geolocation": {
+        "name": "Blocages géolocalisation"
+      },
+      "syslog_webblocker": {
+        "name": "Blocages WebBlocker"
+      },
+      "syslog_reputation": {
+        "name": "Blocages réputation (RED)"
+      },
+      "syslog_dnswatch": {
+        "name": "Blocages DNSWatch"
+      },
+      "syslog_tor": {
+        "name": "Nœuds Tor bloqués"
+      },
+      "syslog_blocked_site": {
+        "name": "Sites bloqués"
+      },
+      "syslog_attack": {
+        "name": "Attaques réseau bloquées"
+      },
+      "syslog_admin_login_failed": {
+        "name": "Échecs de connexion admin"
+      },
+      "syslog_auth_failed": {
+        "name": "Échecs d'authentification utilisateur"
+      },
+      "syslog_denied": {
+        "name": "Paquets refusés"
+      },
+      "syslog_allowed": {
+        "name": "Connexions autorisées (journalisées)"
+      },
+      "threats_24h": {
+        "name": "Menaces bloquées (24 h)"
+      },
+      "last_threat": {
+        "name": "Dernière menace"
+      },
+      "countries_24h": {
+        "name": "Pays bloqués (24 h)"
+      },
+      "syslog_last_received": {
+        "name": "Dernier message syslog"
       }
     },
     "binary_sensor": {
       "interface": {
-        "name": "Interface {name}"
+        "name": "{name}"
       },
       "license_expiring": {
         "name": "Abonnements bientôt expirés"
@@ -106,12 +172,23 @@
       },
       "upgrade_failed": {
         "name": "Échec de la dernière mise à jour"
+      },
+      "syslog_receiving": {
+        "name": "Réception syslog"
       }
     },
     "device_tracker": {
       "tracked_device": {
         "name": "Appareil suivi"
       }
+    }
+  },
+  "device": {
+    "security": {
+      "name": "{name} Sécurité"
+    },
+    "interfaces": {
+      "name": "{name} Interfaces"
     }
   }
 }

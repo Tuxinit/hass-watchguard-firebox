@@ -1,4 +1,4 @@
-"""Binary sensors (interface link status) for the WatchGuard Firebox integration."""
+"""Binary sensors for the WatchGuard Firebox integration."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import LICENSE_WARNING_DAYS
 from .coordinator import FireboxConfigEntry, FireboxCoordinator
-from .entity import FireboxEntity
+from .entity import FireboxEntity, FireboxPushEntity
 
 PARALLEL_UPDATES = 0
 
@@ -46,6 +46,8 @@ async def async_setup_entry(
             FireboxUpgradeFailedSensor(coordinator),
         ]
     )
+    if coordinator.syslog is not None:
+        async_add_entities([FireboxSyslogReceivingSensor(coordinator, coordinator.syslog)])
 
 
 class FireboxInterfaceSensor(FireboxEntity, BinarySensorEntity):
@@ -55,7 +57,7 @@ class FireboxInterfaceSensor(FireboxEntity, BinarySensorEntity):
     _attr_translation_key = "interface"
 
     def __init__(self, coordinator: FireboxCoordinator, index: int) -> None:
-        super().__init__(coordinator, f"interface_{index}")
+        super().__init__(coordinator, f"interface_{index}", "interfaces")
         self._index = index
         iface = coordinator.data.interfaces[index]
         self._attr_translation_placeholders = {"name": iface.name}
@@ -127,7 +129,7 @@ class FireboxSignatureAutoUpdateSensor(FireboxEntity, BinarySensorEntity):
     _attr_translation_key = "signature_auto_update"
 
     def __init__(self, coordinator: FireboxCoordinator) -> None:
-        super().__init__(coordinator, "signature_auto_update")
+        super().__init__(coordinator, "signature_auto_update", "security")
 
     @property
     def is_on(self) -> bool | None:
@@ -158,3 +160,34 @@ class FireboxUpgradeFailedSensor(FireboxEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         ups = self.coordinator.data.slow.upgrades
         return None if not ups else not ups[-1].success
+
+
+SYSLOG_SILENCE = timedelta(minutes=30)
+
+
+class FireboxSyslogReceivingSensor(FireboxPushEntity, BinarySensorEntity):
+    """On while syslog messages keep arriving (diagnostic)."""
+
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_translation_key = "syslog_receiving"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: FireboxCoordinator, receiver) -> None:
+        super().__init__(coordinator, "syslog_receiving")
+        self._receiver = receiver
+
+    async def async_added_to_hass(self) -> None:
+        self.async_on_remove(self._receiver.async_add_listener(self.async_write_ha_state))
+
+    @property
+    def is_on(self) -> bool:
+        last = self._receiver.last_received
+        return (
+            self._receiver.listening
+            and last is not None
+            and dt_util.utcnow() - last < SYSLOG_SILENCE
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"port": self._receiver.port, "error": self._receiver.error}

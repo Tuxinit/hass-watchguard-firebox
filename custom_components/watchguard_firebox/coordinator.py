@@ -144,6 +144,7 @@ class FireboxCoordinator(DataUpdateCoordinator[FireboxData]):
         self._unsupported: set[str] = set()
         self._slow = SlowData()
         self._slow_at: datetime | None = None
+        self.syslog = None  # FireboxSyslogReceiver when enabled
 
     def _ok(self, out: dict[str, str], cmd: str) -> str | None:
         """Return command output, or None (and stop polling it) if refused."""

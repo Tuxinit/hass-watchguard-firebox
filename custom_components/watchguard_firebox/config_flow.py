@@ -30,7 +30,11 @@ from .const import (
     CONF_CONSIDER_HOME,
     CONF_HOST_KEY,
     CONF_POLL_DHCP,
+    CONF_SYSLOG_ENABLED,
+    CONF_SYSLOG_PORT,
+    CONF_SYSLOG_SOURCES,
     CONF_TRACKED_MACS,
+    DEFAULT_SYSLOG_PORT,
     DEFAULT_CONSIDER_HOME,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
@@ -170,8 +174,18 @@ class FireboxOptionsFlow(OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(data=user_input)
+            import ipaddress
+
+            try:
+                for ip in str(user_input.get(CONF_SYSLOG_SOURCES, "")).split(","):
+                    if ip.strip():
+                        ipaddress.ip_address(ip.strip())
+            except ValueError:
+                errors[CONF_SYSLOG_SOURCES] = "invalid_ip"
+            else:
+                return self.async_create_entry(data=user_input)
 
         opts = self.config_entry.options
         tracked: list[str] = opts.get(CONF_TRACKED_MACS, [])
@@ -203,6 +217,16 @@ class FireboxOptionsFlow(OptionsFlow):
                     CONF_CONSIDER_HOME,
                     default=opts.get(CONF_CONSIDER_HOME, DEFAULT_CONSIDER_HOME),
                 ): vol.All(vol.Coerce(int), vol.Range(min=0, max=86400)),
+                vol.Required(
+                    CONF_SYSLOG_ENABLED, default=opts.get(CONF_SYSLOG_ENABLED, False)
+                ): bool,
+                vol.Required(
+                    CONF_SYSLOG_PORT, default=opts.get(CONF_SYSLOG_PORT, DEFAULT_SYSLOG_PORT)
+                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
+                vol.Required(
+                    CONF_SYSLOG_SOURCES,
+                    default=opts.get(CONF_SYSLOG_SOURCES, self.config_entry.data[CONF_HOST]),
+                ): str,
                 vol.Optional(CONF_TRACKED_MACS, default=tracked): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
@@ -216,4 +240,4 @@ class FireboxOptionsFlow(OptionsFlow):
                 ),
             }
         )
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(step_id="init", data_schema=schema, errors=errors)

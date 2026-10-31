@@ -17,8 +17,10 @@ TO_REDACT = {CONF_PASSWORD, CONF_USERNAME, "serial_number", "mac", "unique_id"}
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: FireboxConfigEntry
 ) -> dict[str, Any]:
-    data = entry.runtime_data.data
+    coordinator = entry.runtime_data
+    data = coordinator.data
     return {
+        "syslog": coordinator.syslog.diagnostics() if coordinator.syslog else None,
         "entry": async_redact_data(
             {"data": dict(entry.data), "options": dict(entry.options)}, TO_REDACT
         ),
