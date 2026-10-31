@@ -223,3 +223,35 @@ def classify(event: FireboxLogEvent) -> str | None:
     if event.action == "Allow":
         return "allowed"
     return None
+
+
+# --------------------------------------------------------------------------
+# Kernel / system lines (no msg_id)
+# --------------------------------------------------------------------------
+
+_OWN_MAC_RE = re.compile(
+    r"(?P<vif>\S+): received packet on (?P<port>\S+) with own address as source address"
+    r"(?: \(addr:(?P<mac>[0-9a-fA-F:]{17})(?:, vlan:(?P<vlan>\d+))?\))?"
+)
+_RATELIMIT_RE = re.compile(r"net_ratelimit: (?P<n>\d+) callbacks suppressed")
+
+
+def parse_system_line(line: str) -> tuple[str, dict] | None:
+    """Recognise useful kernel messages that carry no Fireware msg_id.
+
+    Returns ("own_mac", {...}) when the Firebox receives frames carrying its
+    own MAC address as source (L2 loop / reflection / spoofing), or
+    ("ratelimit", {"suppressed": n}) for kernel log rate limiting.
+    """
+    m = _OWN_MAC_RE.search(line)
+    if m:
+        return "own_mac", {
+            "interface": m["vif"],
+            "port": m["port"],
+            "mac": (m["mac"] or "").lower() or None,
+            "vlan": int(m["vlan"]) if m["vlan"] else None,
+        }
+    m = _RATELIMIT_RE.search(line)
+    if m:
+        return "ratelimit", {"suppressed": int(m["n"])}
+    return None

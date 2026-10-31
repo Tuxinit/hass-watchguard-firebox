@@ -175,6 +175,9 @@
       },
       "syslog_receiving": {
         "name": "Syslog receiving"
+      },
+      "own_mac_loop": {
+        "name": "Own MAC received (L2 loop)"
       }
     },
     "device_tracker": {

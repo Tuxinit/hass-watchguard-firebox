@@ -244,6 +244,22 @@ async def test_syslog_counters_map_and_events(hass: HomeAssistant, mock_client, 
     assert by_iso["CHN"].attributes["source"] == "watchguard_firebox"
     assert "China" in by_iso["CHN"].name or "Chine" in by_iso["CHN"].name
 
+    # kernel "own address as source" lines -> L2 loop sensor, not "unparsed"
+    from tests.test_syslog_parser import KERNEL_OWN_MAC, KERNEL_RATELIMIT
+
+    receiver.handle_line(KERNEL_OWN_MAC)
+    receiver.handle_line(KERNEL_RATELIMIT)
+    receiver.handle_line(KERNEL_OWN_MAC.replace("eth1", "eth3"))
+    receiver._tick()
+    await hass.async_block_till_done()
+    loop = hass.states.get("binary_sensor.jurassic_t25_own_mac_received_l2_loop")
+    assert loop.state == "on"
+    assert loop.attributes["ports"] == {"eth1": 1, "eth3": 1}
+    assert loop.attributes["suppressed_messages"] == 509597
+    assert loop.attributes["mac"] == "00:01:21:77:1a:3b"
+    assert receiver.lines_unparsed == 0
+    assert receiver.diagnostics()["category_samples"]["botnet"][0].endswith("(Botnet Detection-00)")
+
     # spoofed source is rejected
     receiver.allowed_sources = {"10.0.0.1"}
     with pysocket.socket(pysocket.AF_INET, pysocket.SOCK_DGRAM) as s:

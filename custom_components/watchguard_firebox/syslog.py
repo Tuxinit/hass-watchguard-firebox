@@ -24,7 +24,13 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
-from .syslog_parser import CATEGORIES, THREAT_CATEGORIES, FireboxLogEvent, parse_line
+from .syslog_parser import (
+    CATEGORIES,
+    THREAT_CATEGORIES,
+    FireboxLogEvent,
+    parse_line,
+    parse_system_line,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -91,6 +97,15 @@ class FireboxSyslogReceiver:
         self.rejected_sources: dict[str, int] = {}
         self.lines_unparsed = 0
         self.unparsed_samples: deque[str] = deque(maxlen=SAMPLES)
+        self.category_samples: dict[str, deque[str]] = {}
+        # Kernel: frames received with the Firebox's own MAC as source
+        self.own_mac_count = 0
+        self.own_mac_suppressed = 0
+        self.own_mac_last: datetime | None = None
+        self.own_mac_ports: dict[str, int] = {}
+        self.own_mac_interfaces: dict[str, int] = {}
+        self.own_mac_address: str | None = None
+        self.system_lines = 0
         self.events_dropped = 0
 
     # ------------------------------------------------------------------ #
@@ -175,12 +190,18 @@ class FireboxSyslogReceiver:
         self._dirty = True
         event = parse_line(line)
         if event is None:
+            system = parse_system_line(line)
+            if system is not None:
+                self._handle_system(*system)
+                return
             self.lines_unparsed += 1
             self.unparsed_samples.append(line[:500])
             return
         cat = event.category
         if cat is None:
             return
+        samples = self.category_samples.setdefault(cat, deque(maxlen=3))
+        samples.append(line[:600])
         self.totals[cat] = self.totals.get(cat, 0) + 1
         bucket = self._bucket()
         bucket.categories[cat] = bucket.categories.get(cat, 0) + 1
@@ -192,6 +213,23 @@ class FireboxSyslogReceiver:
 
         if cat in THREAT_CATEGORIES:
             self._record_threat(event)
+
+    def _handle_system(self, kind: str, data: dict) -> None:
+        self.system_lines += 1
+        if kind == "own_mac":
+            self.own_mac_count += 1
+            self.own_mac_last = dt_util.utcnow()
+            self.own_mac_ports[data["port"]] = self.own_mac_ports.get(data["port"], 0) + 1
+            iface = data["interface"]
+            self.own_mac_interfaces[iface] = self.own_mac_interfaces.get(iface, 0) + 1
+            if data.get("mac"):
+                self.own_mac_address = data["mac"]
+        elif kind == "ratelimit" and self.own_mac_last is not None and (
+            dt_util.utcnow() - self.own_mac_last
+        ) < timedelta(minutes=1):
+            # Suppressed kernel messages right after own-MAC messages are,
+            # in practice, more of the same.
+            self.own_mac_suppressed += data["suppressed"]
 
     def _record_threat(self, event: FireboxLogEvent) -> None:
         info = {
@@ -302,6 +340,16 @@ class FireboxSyslogReceiver:
             "lines_unparsed": self.lines_unparsed,
             "events_dropped": self.events_dropped,
             "unparsed_samples": list(self.unparsed_samples),
+            "category_samples": {k: list(v) for k, v in self.category_samples.items()},
+            "system_lines": self.system_lines,
+            "own_mac": {
+                "count": self.own_mac_count,
+                "suppressed": self.own_mac_suppressed,
+                "last": self.own_mac_last.isoformat() if self.own_mac_last else None,
+                "ports": self.own_mac_ports,
+                "interfaces": self.own_mac_interfaces,
+                "mac": self.own_mac_address,
+            },
             "totals": self.totals,
             "window_categories": self.window_categories(),
         }

@@ -99,3 +99,23 @@ def test_smart_quotes_and_garbage():
     e = sp.parse_line(DENY_IN.replace('"', "”"))
     assert e is not None and e.msg_id == "3000-0148" and e.remote_country == "CHN"
     assert sp.parse_line("<13>Oct 31 hello world") is None
+
+
+KERNEL_OWN_MAC = (
+    "<156>Oct 31 20:42:05 JURASSIC-T25 (2026-10-31T19:42:05) kernel: [2068833.733577] "
+    "vlan1: received packet on eth1 with own address as source address "
+    "(addr:00:01:21:77:1a:3b, vlan:0)"
+)
+KERNEL_RATELIMIT = (
+    "<156>Oct 31 20:42:05 JURASSIC-T25 (2026-10-31T19:42:05) kernel: "
+    "[2068833.733569] net_ratelimit: 509597 callbacks suppressed"
+)
+
+
+def test_system_lines():
+    assert sp.parse_line(KERNEL_OWN_MAC) is None
+    kind, data = sp.parse_system_line(KERNEL_OWN_MAC)
+    assert kind == "own_mac"
+    assert data == {"interface": "vlan1", "port": "eth1", "mac": "00:01:21:77:1a:3b", "vlan": 0}
+    assert sp.parse_system_line(KERNEL_RATELIMIT) == ("ratelimit", {"suppressed": 509597})
+    assert sp.parse_system_line("<13>Oct 31 kernel: something else") is None

@@ -175,6 +175,9 @@
       },
       "syslog_receiving": {
         "name": "Réception syslog"
+      },
+      "own_mac_loop": {
+        "name": "Propre MAC reçue (boucle réseau)"
       }
     },
     "device_tracker": {

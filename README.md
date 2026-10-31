@@ -42,6 +42,7 @@ Toutes les entités sont rattachées à **un seul appareil**, le Firebox. La pag
 | **Menaces bloquées (24 h)** (détail par catégorie et 10 dernières menaces en attributs) | syslog |
 | **Dernière menace** (type, IP, pays, signature/virus, policy) | syslog |
 | **Pays bloqués (24 h)** (top 15 avec drapeau en attribut) | syslog |
+| **Propre MAC reçue (boucle réseau)** : problème si le Firebox reçoit des trames portant sa propre adresse MAC (boucle L2, réflexion, usurpation) — ports concernés en attribut | syslog (noyau) |
 | Réception syslog, dernier message syslog (diagnostic) | syslog |
 
 Les compteurs sont des `total_increasing` : ils se tracent jour par jour avec la carte *Graphique des statistiques*, et ils survivent aux redémarrages de HA.

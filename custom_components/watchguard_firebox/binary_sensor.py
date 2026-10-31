@@ -47,7 +47,12 @@ async def async_setup_entry(
         ]
     )
     if coordinator.syslog is not None:
-        async_add_entities([FireboxSyslogReceivingSensor(coordinator, coordinator.syslog)])
+        async_add_entities(
+            [
+                FireboxSyslogReceivingSensor(coordinator, coordinator.syslog),
+                FireboxOwnMacSensor(coordinator, coordinator.syslog),
+            ]
+        )
 
 
 class FireboxInterfaceSensor(FireboxEntity, BinarySensorEntity):
@@ -196,4 +201,42 @@ class FireboxSyslogReceivingSensor(FireboxPushEntity, BinarySensorEntity):
             "error": r.error,
             "allowed_sources": sorted(r.allowed_sources),
             "rejected_sources": dict(r.rejected_sources),
+        }
+
+
+OWN_MAC_WINDOW = timedelta(minutes=10)
+
+
+class FireboxOwnMacSensor(FireboxPushEntity, BinarySensorEntity):
+    """On when the Firebox receives frames with its own MAC as source.
+
+    Typical causes: a layer-2 loop between two Firebox ports bridged in the
+    same VLAN, a switch/AP reflecting frames, or MAC spoofing.
+    """
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_translation_key = "own_mac_loop"
+
+    def __init__(self, coordinator: FireboxCoordinator, receiver) -> None:
+        super().__init__(coordinator, "own_mac_loop")
+        self._receiver = receiver
+
+    async def async_added_to_hass(self) -> None:
+        self.async_on_remove(self._receiver.async_add_listener(self.async_write_ha_state))
+
+    @property
+    def is_on(self) -> bool:
+        last = self._receiver.own_mac_last
+        return last is not None and dt_util.utcnow() - last < OWN_MAC_WINDOW
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        r = self._receiver
+        return {
+            "last_seen": r.own_mac_last.isoformat() if r.own_mac_last else None,
+            "messages": r.own_mac_count,
+            "suppressed_messages": r.own_mac_suppressed,
+            "ports": dict(r.own_mac_ports),
+            "interfaces": dict(r.own_mac_interfaces),
+            "mac": r.own_mac_address,
         }
