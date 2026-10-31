@@ -1,12 +1,8 @@
 """Base entities for the WatchGuard Firebox integration.
 
-Entities are spread over three devices so that the Home Assistant UI groups
-them by theme:
-
-- the Firebox itself ("status"): CPU, memory, firmware, licences, upgrades;
-- "<name> Security", linked via the Firebox: subscriptions, admin sessions,
-  threat counters (syslog), country map;
-- "<name> Interfaces", linked via the Firebox: link status, VLANs, ARP, DHCP.
+All entities belong to one device (the Firebox). Home Assistant's device page
+only has fixed blocks (sensors, diagnostic...), so thematic grouping is done in
+the dashboard (dashboards/firebox.yaml).
 """
 
 from __future__ import annotations
@@ -25,28 +21,17 @@ from .coordinator import FireboxCoordinator
 Group = Literal["status", "security", "interfaces"]
 
 
-def firebox_device_info(entry: ConfigEntry, sysinfo: dict, group: Group) -> DeviceInfo:
-    """DeviceInfo for one of the three Firebox devices."""
-    serial = entry.unique_id
-    name = sysinfo.get("system_name") or entry.title
+def firebox_device_info(entry: ConfigEntry, sysinfo: dict, group: Group = "status") -> DeviceInfo:
+    """DeviceInfo of the Firebox (single device; `group` is informational only)."""
     model = f"Firebox {sysinfo['model']}" if sysinfo.get("model") else "Firebox"
-    if group == "status":
-        return DeviceInfo(
-            identifiers={(DOMAIN, serial)},
-            manufacturer=MANUFACTURER,
-            model=model,
-            name=name,
-            serial_number=sysinfo.get("serial_number"),
-            sw_version=sysinfo.get("version"),
-            configuration_url=f"https://{entry.data[CONF_HOST]}:8080",
-        )
     return DeviceInfo(
-        identifiers={(DOMAIN, f"{serial}_{group}")},
+        identifiers={(DOMAIN, entry.unique_id)},
         manufacturer=MANUFACTURER,
         model=model,
-        translation_key=group,
-        translation_placeholders={"name": name},
-        via_device=(DOMAIN, serial),
+        name=sysinfo.get("system_name") or entry.title,
+        serial_number=sysinfo.get("serial_number"),
+        sw_version=sysinfo.get("version"),
+        configuration_url=f"https://{entry.data[CONF_HOST]}:8080",
     )
 
 

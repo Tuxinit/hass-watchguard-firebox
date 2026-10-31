@@ -13,11 +13,11 @@ pfSense expose une API XML-RPC locale ; Fireware n'a pas d'équivalent pour un F
 
 Rien n'est à installer sur le Firebox. Testée sur un Firebox T25, Fireware 12.12.3.
 
-## Appareils et entités (v0.3)
+## Entités (v0.3)
 
-Les entités sont réparties sur trois appareils liés entre eux :
+Toutes les entités sont rattachées à **un seul appareil**, le Firebox. La page d'un appareil Home Assistant n'a que des blocs fixes (Capteurs, Diagnostic…) : le regroupement par thème se fait dans la vue [`dashboards/firebox.yaml`](dashboards/firebox.yaml) (blocs Statut, Sécurité, Interfaces, Carte).
 
-### `<Firebox>` — Statut
+### Statut
 
 | Entité | Source |
 |---|---|
@@ -27,7 +27,7 @@ Les entités sont réparties sur trois appareils liés entre eux :
 | Expiration des abonnements (la plus proche) + *Abonnements bientôt expirés* (< 30 j) | `show features` |
 | Dernière mise à jour Fireware + *Échec de la dernière mise à jour* | `show upgrade` |
 
-### `<Firebox> Sécurité`
+### Sécurité
 
 | Entité | Source |
 |---|---|
@@ -42,7 +42,7 @@ Les entités sont réparties sur trois appareils liés entre eux :
 
 Les compteurs sont des `total_increasing` : ils se tracent jour par jour avec la carte *Graphique des statistiques*, et ils survivent aux redémarrages de HA.
 
-### `<Firebox> Interfaces`
+### Interfaces
 
 | Entité | Source |
 |---|---|
@@ -50,7 +50,7 @@ Les compteurs sont des `total_increasing` : ils se tracent jour par jour avec la
 | Appareils actifs par VLAN (zone, adresse, baux DHCP en attributs) | `show arp` + `show vlan` |
 | Entrées ARP, baux DHCP | `show arp`, `show dhcp lease` |
 
-### Hors appareils
+### Autres
 
 - **Suivi de présence** (`device_tracker`) des appareils choisis dans les options, à partir de la table ARP.
 - **Carte des pays** : une entité `geo_location.firebox_<iso3>` par pays vu dans les dernières 24 h (bloquées ⛔ / autorisées ✓).
@@ -89,9 +89,14 @@ La géolocalisation vient des champs `geo_src` / `geo_dst` que Fireware ajoute a
 
 Le menu *Diagnostics* de l'intégration montre les compteurs bruts, les IP rejetées et des exemples de lignes non reconnues, utiles pour affiner la classification.
 
-## Tableau de bord sécurité
+## Tableau de bord
 
-[`dashboards/securite.yaml`](dashboards/securite.yaml) contient une vue complète en cartes natives (aucun module front à installer) : synthèse, carte du monde, tableau des pays, graphiques des menaces par jour, dernières menaces, abonnements, état du Firebox.
+[`dashboards/firebox.yaml`](dashboards/firebox.yaml) contient une vue en cartes natives (aucun module front à installer), avec un bloc par thème :
+
+- **Statut Firebox** : jauges CPU/mémoire, licences, mises à jour, historique ;
+- **Sécurité** : menaces 24 h, admins connectés, comptes verrouillés, menaces bloquées par jour, totaux, dernières menaces, abonnements ;
+- **Interfaces** : état des interfaces, appareils actifs par VLAN, ARP/DHCP ;
+- **Carte** : connexions dans le monde (24 h), tableau des pays, dernière menace.
 
 Pour l'installer : *Tableau de bord > ⋮ > Modifier > ⋮ > Éditeur de configuration brute*, puis coller la vue sous `views:`.
 
@@ -136,7 +141,7 @@ automation:
   - alias: Firebox — session d'administration
     triggers:
       - trigger: numeric_state
-        entity_id: sensor.jurassic_t25_securite_sessions_d_administration
+        entity_id: sensor.jurassic_t25_sessions_d_administration
         above: 0
     actions:
       - action: notify.mobile_app_mon_telephone
@@ -178,7 +183,7 @@ automation:
 ## Feuille de route
 
 - [x] Licences, mises à jour, signatures, sessions d'administration, comptes verrouillés (v0.2)
-- [x] Regroupement par appareil, compteurs de menaces, carte des pays (v0.3)
+- [x] Compteurs de menaces, carte des pays, vue en blocs par thème (v0.3)
 - [ ] Débit par interface (SNMPv3) et par IP (NetFlow)
 - [ ] Stockage système (`show sys-storage`), tunnels VPN (`show vpn-status`)
 - [ ] Actions optionnelles (compte admin) : redémarrage, activer/désactiver une policy, bloquer une IP

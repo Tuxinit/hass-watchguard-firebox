@@ -162,7 +162,7 @@
     },
     "binary_sensor": {
       "interface": {
-        "name": "{name}"
+        "name": "Interface {name}"
       },
       "license_expiring": {
         "name": "Subscriptions expiring soon"
@@ -181,14 +181,6 @@
       "tracked_device": {
         "name": "Tracked device"
       }
-    }
-  },
-  "device": {
-    "security": {
-      "name": "{name} Security"
-    },
-    "interfaces": {
-      "name": "{name} Interfaces"
     }
   }
 }

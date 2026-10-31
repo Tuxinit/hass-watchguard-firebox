@@ -29,14 +29,14 @@ async def test_flow_and_entities(hass: HomeAssistant, mock_client) -> None:
     assert hass.states.get("sensor.jurassic_t25_cpu_1_min").state == "8.0"
     assert hass.states.get("sensor.jurassic_t25_memory_used").state == "55.4"
     assert hass.states.get("sensor.jurassic_t25_fireware_version").state == "12.12.3.B747886"
-    assert hass.states.get("sensor.jurassic_t25_interfaces_arp_entries").state == "7"
-    assert hass.states.get("sensor.jurassic_t25_interfaces_dhcp_leases").state == "7"
+    assert hass.states.get("sensor.jurassic_t25_arp_entries").state == "7"
+    assert hass.states.get("sensor.jurassic_t25_dhcp_leases").state == "7"
     assert hass.states.get("sensor.jurassic_t25_last_boot").state not in ("unknown", "unavailable")
-    assert hass.states.get("binary_sensor.jurassic_t25_interfaces_external").state == "on"
-    assert hass.states.get("binary_sensor.jurassic_t25_interfaces_vlan_home").state == "on"
+    assert hass.states.get("binary_sensor.jurassic_t25_interface_external").state == "on"
+    assert hass.states.get("binary_sensor.jurassic_t25_interface_vlan_home").state == "on"
     # disabled interface -> entity disabled by default
     reg = er.async_get(hass)
-    wifi = reg.async_get("binary_sensor.jurassic_t25_interfaces_wifi")
+    wifi = reg.async_get("binary_sensor.jurassic_t25_interface_wifi")
     assert wifi is not None and wifi.disabled_by is not None
 
 
@@ -92,19 +92,19 @@ async def test_mcs_mco_entities(hass: HomeAssistant, mock_client) -> None:
     assert "IPS" in exp.attributes["next_expiring"]
     assert exp.attributes["features"]["BOVPN_TUNNEL"] == "never"
     assert hass.states.get("binary_sensor.jurassic_t25_subscriptions_expiring_soon").state == "off"
-    assert hass.states.get("binary_sensor.jurassic_t25_security_signature_auto_update_disabled").state == "off"
+    assert hass.states.get("binary_sensor.jurassic_t25_signature_auto_update_disabled").state == "off"
     assert hass.states.get("binary_sensor.jurassic_t25_last_upgrade_failed").state == "off"
     up = hass.states.get("sensor.jurassic_t25_last_fireware_upgrade")
     assert up.attributes["version"] == "12.12.3"
     # Firebox local time 21:01:04, test instance runs in America/Los_Angeles (UTC-7)
     assert up.state == "2026-10-08T04:01:04+00:00"
     # HA's own session (ha_monitor @ 172.25.5.50) is excluded
-    sess = hass.states.get("sensor.jurassic_t25_security_management_sessions")
+    sess = hass.states.get("sensor.jurassic_t25_management_sessions")
     assert sess.state == "1"
     assert sess.attributes["sessions"][0]["ip"] == "172.25.3.109"
     assert sess.attributes["total_including_home_assistant"] == 2
-    assert hass.states.get("sensor.jurassic_t25_security_locked_out_accounts").state == "0"
-    domo = hass.states.get("sensor.jurassic_t25_interfaces_devices_jurassic_domo")
+    assert hass.states.get("sensor.jurassic_t25_locked_out_accounts").state == "0"
+    domo = hass.states.get("sensor.jurassic_t25_devices_jurassic_domo")
     assert domo.state == "4"  # .200 .102 .50 .100 (.52 is incomplete)
     assert domo.attributes["dhcp_leases"] == 5
     assert domo.attributes["zone"] == "optional"
@@ -119,19 +119,50 @@ async def test_slow_commands_hourly(hass: HomeAssistant, mock_client) -> None:
     assert "show features" not in second and "show login-user" in second
 
 
-async def test_devices_grouping(hass: HomeAssistant, mock_client) -> None:
+async def test_single_device(hass: HomeAssistant, mock_client) -> None:
     from homeassistant.helpers import device_registry as dr
 
     entry = await _setup(hass)
     dreg = dr.async_get(hass)
-    devices = {d.name: d for d in dr.async_entries_for_config_entry(dreg, entry.entry_id)}
-    assert set(devices) == {"JURASSIC-T25", "JURASSIC-T25 Security", "JURASSIC-T25 Interfaces"}
-    parent = devices["JURASSIC-T25"]
-    assert devices["JURASSIC-T25 Security"].via_device_id == parent.id
-    assert devices["JURASSIC-T25 Interfaces"].via_device_id == parent.id
-    ips = hass.states.get("sensor.jurassic_t25_security_subscription_ips")
+    devices = dr.async_entries_for_config_entry(dreg, entry.entry_id)
+    assert [d.name for d in devices] == ["JURASSIC-T25"]
+    ips = hass.states.get("sensor.jurassic_t25_subscription_ips")
     assert ips.state == "2027-09-09T08:59:59+00:00"
     assert ips.attributes["days_remaining"] > 300
+
+
+async def test_migrate_v030_devices(hass: HomeAssistant, mock_client) -> None:
+    """v0.3.0 sub-devices are removed and prefixed entity_ids renamed."""
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="D0000000000AA",
+        title="JURASSIC-T25",
+        data={**USER_INPUT, "host_key_fingerprint": "SHA256:testfp"},
+    )
+    entry.add_to_hass(hass)
+    dreg = dr.async_get(hass)
+    ereg = er.async_get(hass)
+    dreg.async_get_or_create(config_entry_id=entry.entry_id, identifiers={(DOMAIN, "D0000000000AA")}, name="JURASSIC-T25")
+    sec = dreg.async_get_or_create(config_entry_id=entry.entry_id, identifiers={(DOMAIN, "D0000000000AA_security")}, name="JURASSIC-T25 Sécurité")
+    itf = dreg.async_get_or_create(config_entry_id=entry.entry_id, identifiers={(DOMAIN, "D0000000000AA_interfaces")}, name="JURASSIC-T25 Interfaces")
+    ereg.async_get_or_create("sensor", DOMAIN, "D0000000000AA_subscription_ips", device_id=sec.id,
+                             suggested_object_id="jurassic_t25_securite_abonnement_ips", config_entry=entry)
+    ereg.async_get_or_create("sensor", DOMAIN, "D0000000000AA_arp_entries", device_id=itf.id,
+                             suggested_object_id="jurassic_t25_interfaces_entrees_arp", config_entry=entry)
+    ereg.async_get_or_create("binary_sensor", DOMAIN, "D0000000000AA_interface_0", device_id=itf.id,
+                             suggested_object_id="jurassic_t25_interfaces_external", config_entry=entry)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert [d.name for d in dr.async_entries_for_config_entry(dreg, entry.entry_id)] == ["JURASSIC-T25"]
+    assert ereg.async_get("sensor.jurassic_t25_abonnement_ips") is not None
+    assert ereg.async_get("sensor.jurassic_t25_entrees_arp") is not None
+    assert ereg.async_get("binary_sensor.jurassic_t25_interface_external") is not None
+    assert hass.states.get("sensor.jurassic_t25_abonnement_ips").state == "2027-09-09T08:59:59+00:00"
 
 
 async def _setup_with_syslog(hass: HomeAssistant, port: int):
@@ -181,21 +212,21 @@ async def test_syslog_counters_map_and_events(hass: HomeAssistant, mock_client, 
     receiver._tick()
     await hass.async_block_till_done()
 
-    assert hass.states.get("sensor.jurassic_t25_security_packets_denied").state == "2"
-    assert hass.states.get("sensor.jurassic_t25_security_botnet_blocked").state == "1"
-    assert hass.states.get("sensor.jurassic_t25_security_ips_detections").state == "1"
-    assert hass.states.get("sensor.jurassic_t25_security_malware_blocked_av").state == "1"
-    t24 = hass.states.get("sensor.jurassic_t25_security_threats_blocked_24_h")
+    assert hass.states.get("sensor.jurassic_t25_packets_denied").state == "2"
+    assert hass.states.get("sensor.jurassic_t25_botnet_blocked").state == "1"
+    assert hass.states.get("sensor.jurassic_t25_ips_detections").state == "1"
+    assert hass.states.get("sensor.jurassic_t25_malware_blocked_av").state == "1"
+    t24 = hass.states.get("sensor.jurassic_t25_threats_blocked_24_h")
     assert t24.state == "3"
     assert t24.attributes["by_category"] == {"antivirus": 1, "botnet": 1, "ips": 1}
-    last = hass.states.get("sensor.jurassic_t25_security_last_threat")
+    last = hass.states.get("sensor.jurassic_t25_last_threat")
     assert last.attributes["category"] == "antivirus"
     assert last.attributes["detail"] == "EICAR_Test_File"
-    countries = hass.states.get("sensor.jurassic_t25_security_countries_blocked_24_h")
+    countries = hass.states.get("sensor.jurassic_t25_countries_blocked_24_h")
     assert countries.state == "3"  # CHN, RUS, NLD
     assert countries.attributes["top"][0]["iso3"] == "CHN"
     assert countries.attributes["top"][0]["blocked"] == 2
-    assert hass.states.get("binary_sensor.jurassic_t25_security_syslog_receiving").state == "on"
+    assert hass.states.get("binary_sensor.jurassic_t25_syslog_receiving").state == "on"
     assert sorted(e["category"] for e in events) == ["antivirus", "botnet", "ips"]
 
     geo = [s for s in hass.states.async_all("geo_location")]
@@ -221,4 +252,4 @@ async def test_syslog_counters_map_and_events(hass: HomeAssistant, mock_client, 
     await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
     assert entry.runtime_data.syslog.totals["botnet"] == 1
-    assert hass.states.get("sensor.jurassic_t25_security_botnet_blocked").state == "1"
+    assert hass.states.get("sensor.jurassic_t25_botnet_blocked").state == "1"

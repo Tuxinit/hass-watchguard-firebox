@@ -10,10 +10,12 @@ from homeassistant.const import (
     Platform,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from .api import FireboxClient
 from .const import (
     CONF_HOST_KEY,
+    DOMAIN,
     CONF_SYSLOG_ENABLED,
     CONF_SYSLOG_PORT,
     CONF_SYSLOG_SOURCES,
@@ -28,6 +30,41 @@ PLATFORMS: list[Platform] = [
     Platform.GEO_LOCATION,
     Platform.SENSOR,
 ]
+
+
+def _migrate_v03_devices(hass: HomeAssistant, entry: FireboxConfigEntry) -> None:
+    """v0.3.0 split entities over 3 devices; fold them back into one.
+
+    Removes the "<name> Security" / "<name> Interfaces" devices and strips the
+    "securite_/security_/interfaces_" prefix that v0.3.0 put in entity_ids.
+    """
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    serial = entry.unique_id
+    parent = dev_reg.async_get_device(identifiers={(DOMAIN, serial)})
+    for group in ("security", "interfaces"):
+        device = dev_reg.async_get_device(identifiers={(DOMAIN, f"{serial}_{group}")})
+        if device is None:
+            continue
+        for ent in er.async_entries_for_device(ent_reg, device.id, include_disabled_entities=True):
+            domain, object_id = ent.entity_id.split(".", 1)
+            new_object_id = object_id
+            for prefix in ("_securite_", "_security_", "_interfaces_"):
+                if prefix in object_id:
+                    head, tail = object_id.split(prefix, 1)
+                    if prefix == "_interfaces_" and domain == "binary_sensor" and not tail.startswith("interface_"):
+                        tail = f"interface_{tail}"
+                    new_object_id = f"{head}_{tail}"
+                    break
+            new_entity_id = f"{domain}.{new_object_id}"
+            updates: dict = {}
+            if parent is not None:
+                updates["device_id"] = parent.id
+            if new_entity_id != ent.entity_id and ent_reg.async_get(new_entity_id) is None:
+                updates["new_entity_id"] = new_entity_id
+            if updates:
+                ent_reg.async_update_entity(ent.entity_id, **updates)
+        dev_reg.async_remove_device(device.id)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: FireboxConfigEntry) -> bool:
@@ -47,6 +84,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: FireboxConfigEntry) -> b
         raise
 
     entry.runtime_data = coordinator
+    _migrate_v03_devices(hass, entry)
 
     if entry.options.get(CONF_SYSLOG_ENABLED, False):
         from .syslog import FireboxSyslogReceiver
