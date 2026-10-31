@@ -233,6 +233,8 @@ async def test_syslog_counters_map_and_events(hass: HomeAssistant, mock_client, 
     by_iso = {s.attributes["iso3"]: s for s in geo}
     assert set(by_iso) == {"CHN", "USA", "RUS", "NLD"}
     assert hass.states.get("geo_location.firebox_chn") is not None
+    assert by_iso["CHN"].attributes["entity_picture"] == "/watchguard_firebox_static/flags/cn.png"
+    assert by_iso["CHN"].name.startswith("China") or by_iso["CHN"].name.startswith("Chine")
     assert by_iso["CHN"].attributes["blocked_24h"] == 2
     assert by_iso["USA"].attributes["allowed_24h"] == 1
     assert by_iso["CHN"].attributes["source"] == "watchguard_firebox"
@@ -254,3 +256,19 @@ async def test_syslog_counters_map_and_events(hass: HomeAssistant, mock_client, 
     await hass.async_block_till_done()
     assert entry.runtime_data.syslog.totals["botnet"] == 1
     assert hass.states.get("sensor.jurassic_t25_botnet_blocked").state == "1"
+
+
+async def test_flags_served(hass: HomeAssistant, mock_client, hass_client, socket_enabled) -> None:
+    from homeassistant.setup import async_setup_component
+
+    assert await async_setup_component(hass, "http", {})
+    import socket as pysocket
+
+    with pysocket.socket(pysocket.AF_INET, pysocket.SOCK_DGRAM) as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    await _setup_with_syslog(hass, port)
+    client = await hass_client()
+    resp = await client.get("/watchguard_firebox_static/flags/fr.png")
+    assert resp.status == 200
+    assert (await resp.read())[:4] == b"\x89PNG"

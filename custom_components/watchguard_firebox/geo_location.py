@@ -17,7 +17,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util.location import distance
 
-from .const import DOMAIN
+from .const import DOMAIN, FLAGS_URL
 from .coordinator import FireboxConfigEntry
 from .syslog import FireboxSyslogReceiver
 
@@ -114,12 +114,17 @@ class FireboxCountryEvent(GeolocationEvent):
     @property
     def name(self) -> str:
         blocked, allowed = self._counts()
-        label = f"{self._info['flag']} {self._info['name']}"
+        label = self._info["name"]
         if blocked and allowed:
             return f"{label} · {blocked} ⛔ / {allowed} ✓"
         if blocked:
             return f"{label} · {blocked} ⛔"
         return f"{label} · {allowed} ✓"
+
+    @property
+    def entity_picture(self) -> str:
+        """Flag image (served locally); the Map card shows it in the marker."""
+        return f"{FLAGS_URL}/{self._info['cca2'].lower()}.png"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from homeassistant.const import (
     CONF_HOST,
     CONF_PASSWORD,
@@ -16,6 +18,7 @@ from .api import FireboxClient
 from .const import (
     CONF_HOST_KEY,
     DOMAIN,
+    FLAGS_URL,
     CONF_SYSLOG_ENABLED,
     CONF_SYSLOG_PORT,
     CONF_SYSLOG_SOURCES,
@@ -67,6 +70,19 @@ def _migrate_v03_devices(hass: HomeAssistant, entry: FireboxConfigEntry) -> None
         dev_reg.async_remove_device(device.id)
 
 
+async def _async_register_static(hass: HomeAssistant) -> None:
+    """Serve the bundled flag images (once per HA instance)."""
+    key = f"{DOMAIN}_static_registered"
+    if hass.data.get(key) or getattr(hass, "http", None) is None:
+        return
+    from homeassistant.components.http import StaticPathConfig
+
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(FLAGS_URL, str(Path(__file__).parent / "flags"), True)]
+    )
+    hass.data[key] = True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: FireboxConfigEntry) -> bool:
     """Set up a Firebox from a config entry."""
     client = FireboxClient(
@@ -102,6 +118,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: FireboxConfigEntry) -> b
         )
         await receiver.async_start()
         coordinator.syslog = receiver
+        await _async_register_static(hass)
     entry.async_on_unload(entry.add_update_listener(_async_reload))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True

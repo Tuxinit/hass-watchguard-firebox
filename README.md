@@ -201,4 +201,4 @@ Les tests rejouent des sorties CLI réelles (anonymisées), testent le client SS
 
 ## Licence
 
-MIT. Coordonnées des pays : [mledoze/countries](https://github.com/mledoze/countries) (ODbL).
+MIT. Coordonnées des pays : [mledoze/countries](https://github.com/mledoze/countries) (ODbL). Drapeaux : [flag-icons](https://github.com/lipis/flag-icons) (MIT).

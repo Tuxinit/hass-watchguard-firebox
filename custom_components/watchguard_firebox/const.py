@@ -36,3 +36,5 @@ CONF_SYSLOG_ENABLED: Final = "syslog_enabled"
 CONF_SYSLOG_PORT: Final = "syslog_port"
 CONF_SYSLOG_SOURCES: Final = "syslog_sources"
 DEFAULT_SYSLOG_PORT: Final = 5514
+
+FLAGS_URL: Final = "/watchguard_firebox_static/flags"
